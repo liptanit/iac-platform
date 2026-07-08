@@ -1,6 +1,6 @@
 datacenter = "Datacenter SVB"
 cluster    = "GZ Cluster"
-datastore  = "DB-Datastore"
+datastore  = "Web-Datastore"
 network    = "KPS Server"
 vm_folder  = "IaC-Lab"
 
