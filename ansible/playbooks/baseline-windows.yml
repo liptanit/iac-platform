@@ -1,0 +1,55 @@
+---
+- name: Windows baseline
+  hosts: windows
+  gather_facts: true
+  vars:
+    windows_timezone: "SE Asia Standard Time"
+    windows_enable_icmp: true
+    windows_baseline_marker: C:\ProgramData\IaC\baseline.txt
+  tasks:
+    - name: Ensure IaC marker directory exists
+      ansible.windows.win_file:
+        path: C:\ProgramData\IaC
+        state: directory
+
+    - name: Write baseline marker
+      ansible.windows.win_copy:
+        dest: "{{ windows_baseline_marker }}"
+        content: |
+          Managed by OpenTofu + Ansible
+          Hostname: {{ ansible_hostname | default(inventory_hostname) }}
+          Applied: {{ ansible_date_time.iso8601 | default('unknown') }}
+
+    - name: Set timezone
+      ansible.windows.win_timezone:
+        timezone: "{{ windows_timezone }}"
+
+    - name: Enable ICMP echo request firewall rule
+      community.windows.win_firewall_rule:
+        name: IaC-Allow-ICMPv4-Echo
+        display_name: IaC Allow ICMPv4 Echo
+        description: Allow ICMPv4 echo request for IaC validation.
+        enabled: true
+        direction: in
+        action: allow
+        protocol: icmpv4
+        profiles:
+          - domain
+          - private
+          - public
+      when: windows_enable_icmp | bool
+
+    - name: Ensure WinRM service is running
+      ansible.windows.win_service:
+        name: WinRM
+        start_mode: auto
+        state: started
+
+    - name: Show baseline summary
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          ansible_host: "{{ ansible_host | default('') }}"
+          hostname: "{{ ansible_hostname | default('') }}"
+          os: "{{ ansible_distribution | default('') }}"
+          timezone: "{{ windows_timezone }}"

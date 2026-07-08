@@ -18,3 +18,4 @@ terraform.rc
 # Local output
 *.log
 .tmp/
+ansible/inventories/windows/hosts.ini

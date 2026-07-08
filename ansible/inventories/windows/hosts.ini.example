@@ -1,0 +1,11 @@
+[windows]
+iac-win-managed-7-01 ansible_host=10.1.0.115
+
+[windows:vars]
+ansible_connection=winrm
+ansible_port=5985
+ansible_winrm_scheme=http
+ansible_winrm_transport=ntlm
+ansible_winrm_server_cert_validation=ignore
+ansible_user={{ lookup('env', 'ANSIBLE_WINDOWS_USER') }}
+ansible_password={{ lookup('env', 'ANSIBLE_WINDOWS_PASSWORD') }}
