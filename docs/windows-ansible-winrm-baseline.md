@@ -22,6 +22,7 @@ Example environment file:
 ```sh
 export ANSIBLE_WINDOWS_USER='Administrator'
 export ANSIBLE_WINDOWS_PASSWORD='REDACTED'
+export TF_VAR_windows_admin_password='REDACTED'
 ```
 
 Then load it:
@@ -79,3 +80,9 @@ Phase 5F confirmed TCP/5985 was reachable from sysap to a Windows clone on the
 SVB Server network. If WinRM auth fails, verify the local Administrator password
 or configure a dedicated local automation account in the Windows template before
 running Sysprep.
+
+Phase 7B confirmed clones from the Sysprep template can present a passwordless
+Administrator console sign-in if the vSphere customization spec does not set a
+password. Always pass `TF_VAR_windows_admin_password` from the root-only env file
+for controlled Windows applies; the OpenTofu variable is sensitive and should not
+be written into `windows.auto.tfvars`.

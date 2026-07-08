@@ -58,6 +58,13 @@ variable "workgroup" {
   default = "WORKGROUP"
 }
 
+variable "admin_password" {
+  description = "Optional local Administrator password to set during VMware Windows guest customization. Pass via a sensitive root variable, never tfvars."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "ipv4_address" {
   type    = string
   default = ""

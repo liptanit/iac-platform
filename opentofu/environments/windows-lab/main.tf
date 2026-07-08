@@ -35,6 +35,7 @@ module "windows_vm" {
   customize_windows       = each.value.customize_windows
   computer_name           = each.value.computer_name
   workgroup               = each.value.workgroup
+  admin_password          = var.windows_admin_password
   ipv4_address            = each.value.ipv4_address
   ipv4_netmask            = each.value.ipv4_netmask
   ipv4_gateway            = each.value.ipv4_gateway

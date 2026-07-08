@@ -36,6 +36,13 @@ variable "source_vm" {
   type        = string
 }
 
+variable "windows_admin_password" {
+  description = "Optional local Administrator password to set during VMware Windows guest customization. Use TF_VAR_windows_admin_password from a root-only env file."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "windows_vms" {
   description = "Map of Windows VMs to create when create_vm is true. Keys are VM names."
   type = map(object({

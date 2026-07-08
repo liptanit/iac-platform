@@ -54,8 +54,9 @@ resource "vsphere_virtual_machine" "this" {
 
       content {
         windows_options {
-          computer_name = local.effective_computer_name
-          workgroup     = var.workgroup
+          computer_name  = local.effective_computer_name
+          workgroup      = var.workgroup
+          admin_password = var.admin_password == "" ? null : var.admin_password
         }
 
         network_interface {

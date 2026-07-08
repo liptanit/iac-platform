@@ -17,8 +17,8 @@
         dest: "{{ windows_baseline_marker }}"
         content: |
           Managed by OpenTofu + Ansible
-          Hostname: {{ ansible_hostname | default(inventory_hostname) }}
-          Applied: {{ ansible_date_time.iso8601 | default('unknown') }}
+          Hostname: {{ ansible_facts.hostname | default(inventory_hostname) }}
+          Applied: {{ ansible_facts.date_time.iso8601 | default('unknown') }}
 
     - name: Set timezone
       ansible.windows.win_timezone:
@@ -50,6 +50,6 @@
         msg:
           host: "{{ inventory_hostname }}"
           ansible_host: "{{ ansible_host | default('') }}"
-          hostname: "{{ ansible_hostname | default('') }}"
-          os: "{{ ansible_distribution | default('') }}"
+          hostname: "{{ ansible_facts.hostname | default('') }}"
+          os: "{{ ansible_facts.distribution | default('') }}"
           timezone: "{{ windows_timezone }}"

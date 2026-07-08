@@ -60,6 +60,20 @@ tofu plan
 The Windows lab environment uses `for_each` over `var.windows_vms` when
 `create_vm=true`. With `create_vm=false`, plans are read-only and create no VMs.
 
+For controlled applies that must support WinRM login, set the local
+Administrator password through the sensitive environment variable:
+
+```bash
+set -a
+. /opt/appserver/config/iac/windows-ansible.env
+set +a
+tofu plan
+tofu apply
+```
+
+The env file should export `TF_VAR_windows_admin_password`. Do not place this
+secret in generated tfvars or examples.
+
 ## Phase 6 Notes
 
 Phase 5F proved that `SVB Server` is the correct network for the 10.1.0.0/24
