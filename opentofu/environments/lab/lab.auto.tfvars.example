@@ -1,12 +1,12 @@
 datacenter = "Datacenter SVB"
 cluster    = "SVB Cluster"
-datastore  = "Web-Datastore"
+datastore  = "MSA2060-Datastore2"
 network    = "SVB Server"
 vm_folder  = "IaC-Lab"
 
 # Keep false until a real template is created/selected.
 create_vm    = false
-vm_template  = ""
+vm_template  = "tpl-ubuntu-24.04-server"
 vm_name      = "iac-lab-linux-001"
 vm_cpu       = 2
 vm_memory_mb = 4096
