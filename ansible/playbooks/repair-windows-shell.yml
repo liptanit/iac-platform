@@ -1,0 +1,17 @@
+---
+- name: Windows post-clone shell repair
+  hosts: windows
+  gather_facts: true
+  vars:
+    windows_shell_repair_reboot: true
+  tasks:
+    - name: Run Windows shell repair tasks
+      ansible.builtin.include_tasks: ../tasks/windows-shell-repair.yml
+
+    - name: Show shell repair summary
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          ansible_host: "{{ ansible_host | default('') }}"
+          hostname: "{{ ansible_facts.hostname | default('') }}"
+          reboot_requested: "{{ windows_shell_repair_reboot | bool }}"

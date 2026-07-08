@@ -1,0 +1,53 @@
+---
+- name: Validate Windows interactive shell health
+  hosts: windows
+  gather_facts: false
+  vars:
+    windows_shell_validation_since_boot: true
+    windows_shell_validation_minutes: 120
+  tasks:
+    - name: Check recent ShellHost, Explorer, and ControlCenter crashes
+      ansible.windows.win_shell: |
+        if ([System.Convert]::ToBoolean('{{ windows_shell_validation_since_boot | bool }}')) {
+          $since = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        } else {
+          $since = (Get-Date).AddMinutes(-{{ windows_shell_validation_minutes | int }})
+        }
+        $events = Get-WinEvent -FilterHashtable @{
+          LogName = 'Application'
+          StartTime = $since
+        } -ErrorAction SilentlyContinue | Where-Object {
+          $_.ProviderName -eq 'Application Error' -and
+          ($_.Message -match 'ShellHost\.exe' -or
+           $_.Message -match 'Explorer\.EXE' -or
+           $_.Message -match 'ControlCenter\.dll')
+        }
+
+        $events | Select-Object -First 20 TimeCreated, Id, ProviderName, Message |
+          ConvertTo-Json -Depth 4
+        if ($events) { exit 2 }
+      register: windows_shell_crashes
+      changed_when: false
+      failed_when: windows_shell_crashes.rc not in [0, 2]
+
+    - name: Fail if recent shell crashes were found
+      ansible.builtin.fail:
+        msg: "{{ windows_shell_crashes.stdout }}"
+      when: windows_shell_crashes.rc == 2
+
+    - name: Check active interactive shell processes
+      ansible.windows.win_shell: |
+        $processes = Get-CimInstance Win32_Process |
+          Where-Object { $_.Name -in @('explorer.exe', 'ShellHost.exe', 'LogonUI.exe') } |
+          Select-Object Name, ProcessId, SessionId
+        $processes | ConvertTo-Json -Depth 3
+      register: windows_shell_processes
+      changed_when: false
+
+    - name: Show shell validation summary
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          since_boot: "{{ windows_shell_validation_since_boot | bool }}"
+          recent_crash_window_minutes: "{{ windows_shell_validation_minutes | int }}"
+          shell_processes: "{{ windows_shell_processes.stdout | default('[]') }}"

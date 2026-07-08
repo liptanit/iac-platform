@@ -5,6 +5,7 @@
   vars:
     windows_timezone: "SE Asia Standard Time"
     windows_enable_icmp: true
+    windows_run_shell_repair: false
     windows_baseline_marker: C:\ProgramData\IaC\baseline.txt
   tasks:
     - name: Ensure IaC marker directory exists
@@ -45,6 +46,10 @@
         start_mode: auto
         state: started
 
+    - name: Run post-clone shell repair when requested
+      ansible.builtin.include_tasks: ../tasks/windows-shell-repair.yml
+      when: windows_run_shell_repair | bool
+
     - name: Show baseline summary
       ansible.builtin.debug:
         msg:
@@ -53,3 +58,4 @@
           hostname: "{{ ansible_facts.hostname | default('') }}"
           os: "{{ ansible_facts.distribution | default('') }}"
           timezone: "{{ windows_timezone }}"
+          shell_repair_requested: "{{ windows_run_shell_repair | bool }}"

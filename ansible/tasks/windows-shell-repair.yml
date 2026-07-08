@@ -1,0 +1,70 @@
+---
+- name: Ensure Windows shell Winlogon registry values are standard
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+    name: "{{ item.name }}"
+    data: "{{ item.data }}"
+    type: string
+  loop:
+    - name: Shell
+      data: explorer.exe
+    - name: Userinit
+      data: C:\Windows\system32\userinit.exe,
+
+- name: Ensure IaC marker directory exists
+  ansible.windows.win_file:
+    path: C:\ProgramData\IaC
+    state: directory
+
+- name: Run DISM component store repair
+  ansible.windows.win_shell: |
+    Dism.exe /Online /Cleanup-Image /RestoreHealth
+  register: windows_shell_repair_dism
+  changed_when: "'The restore operation completed successfully' in windows_shell_repair_dism.stdout"
+  failed_when: windows_shell_repair_dism.rc != 0
+
+- name: Run SFC system file check
+  ansible.windows.win_shell: |
+    sfc.exe /scannow
+  register: windows_shell_repair_sfc
+  changed_when: "'Windows Resource Protection found corrupt files' in windows_shell_repair_sfc.stdout"
+  failed_when: windows_shell_repair_sfc.rc != 0
+
+- name: Re-register AppX shell packages for all users
+  ansible.windows.win_shell: |
+    $ErrorActionPreference = 'Continue'
+    $count = 0
+    $warnings = 0
+    Get-AppxPackage -AllUsers | ForEach-Object {
+      $manifest = Join-Path $_.InstallLocation 'AppXManifest.xml'
+      if (Test-Path $manifest) {
+        try {
+          Add-AppxPackage -DisableDevelopmentMode -Register $manifest -ErrorAction Stop
+          $count++
+        } catch {
+          $warnings++
+          Write-Output "WARN: $($_.Name): $($_.Exception.Message)"
+        }
+      }
+    }
+    Write-Output "Registered=$count Warnings=$warnings"
+    exit 0
+  register: windows_shell_repair_appx
+  changed_when: true
+  failed_when: windows_shell_repair_appx.rc != 0
+
+- name: Write shell repair marker
+  ansible.windows.win_copy:
+    dest: C:\ProgramData\IaC\shell-repair.txt
+    content: |
+      Windows shell repair completed by Ansible.
+      DISM rc: {{ windows_shell_repair_dism.rc }}
+      SFC rc: {{ windows_shell_repair_sfc.rc }}
+      AppX result: {{ windows_shell_repair_appx.stdout | default('') | trim }}
+
+- name: Reboot after Windows shell repair
+  ansible.windows.win_reboot:
+    msg: Rebooting after IaC Windows shell repair.
+    reboot_timeout: 1800
+    post_reboot_delay: 30
+  when: windows_shell_repair_reboot | default(true) | bool
