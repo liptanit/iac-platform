@@ -1,0 +1,19 @@
+#cloud-config
+users:
+  - default
+  - name: iacadmin
+    groups: [adm, sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    lock_passwd: true
+ssh_pwauth: false
+package_update: true
+packages:
+  - open-vm-tools
+  - curl
+  - ca-certificates
+  - qemu-guest-agent
+runcmd:
+  - [ systemctl, enable, --now, open-vm-tools ]
+  - [ systemctl, enable, --now, qemu-guest-agent ]
+final_message: "IaC Ubuntu template clone is ready."

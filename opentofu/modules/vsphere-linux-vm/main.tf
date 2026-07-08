@@ -30,6 +30,17 @@ resource "vsphere_virtual_machine" "this" {
     thin_provisioned = true
   }
 
+  vapp {
+    properties = {
+      "instance-id" = var.vm_name
+      "hostname"    = var.vm_name
+      "public-keys" = var.ssh_public_key
+      "user-data"   = var.cloud_init_user_data == "" ? "" : base64encode(var.cloud_init_user_data)
+      "password"    = ""
+      "seedfrom"    = ""
+    }
+  }
+
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
   }

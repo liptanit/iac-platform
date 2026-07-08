@@ -11,3 +11,6 @@ vm_name      = "iac-lab-linux-001"
 vm_cpu       = 2
 vm_memory_mb = 4096
 vm_disk_gb   = 40
+
+# Public half of /opt/appserver/config/iac/keys/iac_template_ed25519.
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIA+W2ocEhkGCkUoOyethivfABUp4Cl76oyA5SW0li21 iac-template@sysap"

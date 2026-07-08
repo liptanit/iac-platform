@@ -8,3 +8,15 @@ variable "vm_template" { type = string }
 variable "cpu" { type = number }
 variable "memory_mb" { type = number }
 variable "disk_gb" { type = number }
+
+variable "ssh_public_key" {
+  description = "SSH public key injected through Ubuntu OVF/cloud-init properties."
+  type        = string
+  default     = ""
+}
+
+variable "cloud_init_user_data" {
+  description = "Cloud-init user-data injected through Ubuntu OVF properties. Must be plain YAML; module base64-encodes it."
+  type        = string
+  default     = ""
+}

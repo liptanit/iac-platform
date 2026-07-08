@@ -62,3 +62,9 @@ variable "vm_disk_gb" {
   type    = number
   default = 40
 }
+
+variable "ssh_public_key" {
+  description = "SSH public key for Ubuntu cloud-init."
+  type        = string
+  default     = ""
+}
