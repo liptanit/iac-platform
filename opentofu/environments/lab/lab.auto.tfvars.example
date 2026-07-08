@@ -5,16 +5,17 @@ network    = "SVB Server"
 vm_folder  = "IaC-Lab"
 
 # Keep false until a real template is created/selected.
-create_vm    = false
-vm_template  = "tpl-ubuntu-24.04-server"
-vm_name      = "iac-lab-linux-001"
-vm_cpu       = 2
-vm_memory_mb = 4096
-vm_disk_gb   = 40
+create_vm = false
 
 # Public half of /opt/appserver/config/iac/keys/iac_template_ed25519.
 ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIA+W2ocEhkGCkUoOyethivfABUp4Cl76oyA5SW0li21 iac-template@sysap"
 
-# Phase 4C static IPv4 test uses a NoCloud seed ISO uploaded to this datastore path.
-# The seed ISO contains IP 10.1.0.25/24, gateway 10.1.0.254, and DNS 10.1.0.9/10.1.0.254.
-seed_iso_path = "iac/seed/iac-lab-ubuntu-4c-seed.iso"
+vms = {
+  "iac-lab-ubuntu-4c" = {
+    template      = "tpl-ubuntu-24.04-server"
+    cpu           = 2
+    memory_mb     = 4096
+    disk_gb       = 40
+    seed_iso_path = "iac/seed/iac-lab-ubuntu-4c-seed.iso"
+  }
+}

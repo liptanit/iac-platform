@@ -8,6 +8,10 @@ gateway = "10.1.0.254"
 prefix = 24
 dns_servers = ["10.1.0.9", "10.1.0.254"]
 interface_match = "en*"
+template = "tpl-ubuntu-24.04-server"
+cpu = 2
+memory_mb = 4096
+disk_gb = 40
 runcmd = [
   "systemctl enable --now open-vm-tools || true",
 ]
@@ -16,6 +20,7 @@ runcmd = [
 name = "iac-lab-ubuntu-4c"
 ipv4 = "10.1.0.25"
 instance_id = "iac-lab-ubuntu-4c-nocloud"
+seed_iso_path = "iac/seed/iac-lab-ubuntu-4c-seed.iso"
 
 # Add more VMs by adding more [[vm]] blocks:
 #
@@ -23,3 +28,4 @@ instance_id = "iac-lab-ubuntu-4c-nocloud"
 # name = "app-linux-001"
 # ipv4 = "10.1.0.31"
 # instance_id = "app-linux-001-nocloud"
+# seed_iso_path = "iac/seed/app-linux-001-seed.iso"

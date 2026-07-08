@@ -74,3 +74,15 @@ variable "seed_iso_path" {
   type        = string
   default     = ""
 }
+
+variable "vms" {
+  description = "Map of Linux VMs to create when create_vm is true. Keys are VM names."
+  type = map(object({
+    template      = string
+    cpu           = number
+    memory_mb     = number
+    disk_gb       = number
+    seed_iso_path = string
+  }))
+  default = {}
+}

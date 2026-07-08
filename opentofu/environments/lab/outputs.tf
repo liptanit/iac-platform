@@ -21,3 +21,7 @@ output "selected_network" {
 output "create_vm" {
   value = var.create_vm
 }
+
+output "planned_vm_names" {
+  value = keys(local.effective_vms)
+}
