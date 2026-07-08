@@ -1,7 +1,7 @@
 datacenter = "Datacenter SVB"
 cluster    = "GZ Cluster"
 datastore  = "Web-Datastore"
-network    = "KPS Server"
+network    = "SVB Server"
 vm_folder  = "IaC-Lab"
 
 # Enable only after tpl-windows-server-2025-kps-reatime exists and was sysprepped/generalized.
@@ -10,7 +10,7 @@ create_vm = false
 source_vm = "/Datacenter SVB/vm/IaC-Lab/tpl-windows-server-2025-kps-reatime"
 
 windows_vms = {
-  "iac-win-managed-5e-01" = {
+  "iac-win-managed-5f-01" = {
     cpu                     = 4
     memory_mb               = 32768
     guest_id                = "windows9Server64Guest"
@@ -33,11 +33,11 @@ windows_vms = {
 
     # Use VMware Guest Customization only after the sysprepped template is verified.
     customize_windows = true
-    computer_name     = "IAC-WIN-5E-01"
+    computer_name     = "IAC-WIN-5F-01"
     workgroup         = "WORKGROUP"
-    ipv4_address      = ""
+    ipv4_address      = "10.1.0.116"
     ipv4_netmask      = 24
-    ipv4_gateway      = ""
+    ipv4_gateway      = "10.1.0.254"
     dns_server_list   = ["10.1.0.9", "10.1.0.254"]
     dns_suffix_list   = ["kingpower.local"]
   }
