@@ -22,7 +22,7 @@ windows_vms = {
       },
       {
         label            = "disk1"
-        size_gb          = 639
+        size_gb          = 200
         unit_number      = 1
         thin_provisioned = true
       }

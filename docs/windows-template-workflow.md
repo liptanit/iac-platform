@@ -8,11 +8,11 @@ Source VM selected by owner: `/Datacenter SVB/vm/Discovered virtual machine/KPS-
 
 - VM name: `KPS-Reatime`
 - Power state: `poweredOff`
-- Guest ID: `windows2019srvNext_64Guest`
+- Guest ID reported by vCenter: `windows2019srvNext_64Guest`
 - CPU: 4
 - Memory: 32768 MB
 - Network: `KPS Server`
-- Disks: approximately 300 GB and 638 GB
+- Disks after Phase 5B source adjustment: approximately 300 GB and 200 GB
 - Existing CD-ROM: Windows ISO is attached on the source VM
 - VMware Tools status from vCenter while powered off: not running, expected for a powered-off VM
 
@@ -22,7 +22,7 @@ The source VM is large and likely carries machine-specific Windows identity, loc
 
 Before enabling `create_vm=true` for a real Windows clone, approve these points:
 
-- Target datastore has enough free capacity for a 900 GB class clone.
+- Target datastore has enough free capacity for a 500 GB class clone.
 - Source VM is clean enough to become a template, or a clone will be manually generalized with Sysprep first.
 - Windows activation, hostname/domain identity, local admin policy, and application services are understood.
 - Guest customization should be enabled only after VMware Tools and Sysprep readiness are confirmed.
@@ -38,11 +38,13 @@ Windows provisioning is isolated from the Linux NoCloud workflow:
 
 The default example keeps `create_vm=false`. With that setting, plans only resolve vCenter objects and create no VM resources.
 
+The HashiCorp vSphere provider version used here does not expose a supported `power_on=false` argument on `vsphere_virtual_machine`. For a non-sysprepped Windows source, use the controlled `govc vm.clone -on=false` workflow for the first powered-off validation clone, then decide whether to import the VM into state or promote a generalized template.
+
 ## Controlled Test Path
 
 1. Copy the example tfvars to `windows.auto.tfvars`.
 2. Keep `create_vm=false` and run `tofu init`, `tofu validate`, and `tofu plan`.
-3. For a real test, set one VM entry, confirm datastore capacity, then set `create_vm=true`.
+3. For OpenTofu resource testing, set one VM entry, confirm datastore capacity, then set `create_vm=true`. Only do this after accepting that the provider may power on the VM.
 4. Keep `customize_windows=false` for the first clone if Sysprep/customization readiness is unknown.
 5. After successful clone validation, destroy the lab clone unless it is promoted intentionally.
 
@@ -50,5 +52,5 @@ The default example keeps `create_vm=false`. With that setting, plans only resol
 
 Phase 5B should either:
 
-- create one temporary Windows clone from `KPS-Reatime` and immediately validate power/network/vCenter identity before destroy, or
-- create a separate `tpl-windows-kps-reatime` clone/template after confirming the 900 GB storage impact and Windows generalization approach.
+- create one temporary powered-off Windows clone from `KPS-Reatime` and validate vCenter inventory/disk layout before destroy, or
+- create a separate `tpl-windows-kps-reatime` clone/template after confirming the 500 GB storage impact and Windows generalization approach.
