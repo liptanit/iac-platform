@@ -27,20 +27,33 @@ resource "vsphere_virtual_machine" "this" {
     client_device = true
   }
 
+  dynamic "cdrom" {
+    for_each = var.seed_iso_path == "" ? [] : [1]
+
+    content {
+      datastore_id = var.seed_iso_datastore_id
+      path         = var.seed_iso_path
+    }
+  }
+
   disk {
     label            = "disk0"
     size             = var.disk_gb
     thin_provisioned = true
   }
 
-  vapp {
-    properties = {
-      "instance-id" = var.vm_name
-      "hostname"    = var.vm_name
-      "public-keys" = var.ssh_public_key
-      "user-data"   = var.cloud_init_user_data == "" ? "" : base64encode(var.cloud_init_user_data)
-      "password"    = ""
-      "seedfrom"    = ""
+  dynamic "vapp" {
+    for_each = var.seed_iso_path == "" ? [1] : []
+
+    content {
+      properties = {
+        "instance-id" = var.vm_name
+        "hostname"    = var.vm_name
+        "public-keys" = var.ssh_public_key
+        "user-data"   = var.cloud_init_user_data == "" ? "" : base64encode(var.cloud_init_user_data)
+        "password"    = ""
+        "seedfrom"    = ""
+      }
     }
   }
 

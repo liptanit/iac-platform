@@ -14,3 +14,7 @@ vm_disk_gb   = 40
 
 # Public half of /opt/appserver/config/iac/keys/iac_template_ed25519.
 ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIA+W2ocEhkGCkUoOyethivfABUp4Cl76oyA5SW0li21 iac-template@sysap"
+
+# Phase 4C static IPv4 test uses a NoCloud seed ISO uploaded to this datastore path.
+# The seed ISO contains IP 10.1.0.25/24, gateway 10.1.0.254, and DNS 10.1.0.9/10.1.0.254.
+seed_iso_path = "iac/seed/iac-lab-ubuntu-4c-seed.iso"

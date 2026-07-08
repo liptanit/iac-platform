@@ -20,3 +20,15 @@ variable "cloud_init_user_data" {
   type        = string
   default     = ""
 }
+
+variable "seed_iso_path" {
+  description = "Datastore-relative path to a NoCloud seed ISO. Empty uses the template OVF/vApp cloud-init path."
+  type        = string
+  default     = ""
+}
+
+variable "seed_iso_datastore_id" {
+  description = "Datastore ID containing the NoCloud seed ISO."
+  type        = string
+  default     = ""
+}

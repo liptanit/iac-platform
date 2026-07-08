@@ -68,3 +68,9 @@ variable "ssh_public_key" {
   type        = string
   default     = ""
 }
+
+variable "seed_iso_path" {
+  description = "Datastore-relative path to a pre-uploaded NoCloud seed ISO."
+  type        = string
+  default     = ""
+}
