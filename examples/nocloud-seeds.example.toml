@@ -1,0 +1,25 @@
+[defaults]
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIA+W2ocEhkGCkUoOyethivfABUp4Cl76oyA5SW0li21 iac-template@sysap"
+username = "iacadmin"
+groups = ["adm", "sudo"]
+shell = "/bin/bash"
+sudo = "ALL=(ALL) NOPASSWD:ALL"
+gateway = "10.1.0.254"
+prefix = 24
+dns_servers = ["10.1.0.9", "10.1.0.254"]
+interface_match = "en*"
+runcmd = [
+  "systemctl enable --now open-vm-tools || true",
+]
+
+[[vm]]
+name = "iac-lab-ubuntu-4c"
+ipv4 = "10.1.0.25"
+instance_id = "iac-lab-ubuntu-4c-nocloud"
+
+# Add more VMs by adding more [[vm]] blocks:
+#
+# [[vm]]
+# name = "app-linux-001"
+# ipv4 = "10.1.0.31"
+# instance_id = "app-linux-001-nocloud"
