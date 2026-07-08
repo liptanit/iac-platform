@@ -1,0 +1,40 @@
+datacenter = "Datacenter SVB"
+cluster    = "SVB Cluster"
+datastore  = "MSA2060-Datastore2"
+network    = "KPS Server"
+vm_folder  = "IaC-Lab"
+
+# Keep false until storage, Windows identity, and sysprep policy are approved.
+create_vm = false
+
+source_vm = "/Datacenter SVB/vm/Discovered virtual machine/KPS-Reatime"
+
+windows_vms = {
+  "iac-lab-win-5a-01" = {
+    cpu       = 4
+    memory_mb = 32768
+    disks = [
+      {
+        label            = "disk0"
+        size_gb          = 300
+        unit_number      = 0
+        thin_provisioned = true
+      },
+      {
+        label            = "disk1"
+        size_gb          = 639
+        unit_number      = 1
+        thin_provisioned = true
+      }
+    ]
+
+    customize_windows = false
+    computer_name     = "IAC-WIN-5A-01"
+    workgroup         = "WORKGROUP"
+    ipv4_address      = ""
+    ipv4_netmask      = 24
+    ipv4_gateway      = "10.1.0.254"
+    dns_server_list   = ["10.1.0.9", "10.1.0.254"]
+    dns_suffix_list   = ["kingpower.local"]
+  }
+}
