@@ -20,6 +20,10 @@ resource "vsphere_virtual_machine" "this" {
     adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
   }
 
+  cdrom {
+    client_device = true
+  }
+
   disk {
     label            = "disk0"
     size             = var.disk_gb
