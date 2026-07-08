@@ -1,0 +1,10 @@
+variable "datacenter_id" { type = string }
+variable "datastore_id" { type = string }
+variable "resource_pool_id" { type = string }
+variable "network_id" { type = string }
+variable "vm_folder" { type = string }
+variable "vm_name" { type = string }
+variable "vm_template" { type = string }
+variable "cpu" { type = number }
+variable "memory_mb" { type = number }
+variable "disk_gb" { type = number }

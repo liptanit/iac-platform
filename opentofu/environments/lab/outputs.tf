@@ -1,0 +1,23 @@
+output "selected_vcenter" {
+  value = "10.0.1.90"
+}
+
+output "selected_datacenter" {
+  value = data.vsphere_datacenter.selected.name
+}
+
+output "selected_cluster" {
+  value = data.vsphere_compute_cluster.selected.name
+}
+
+output "selected_datastore" {
+  value = data.vsphere_datastore.selected.name
+}
+
+output "selected_network" {
+  value = data.vsphere_network.selected.name
+}
+
+output "create_vm" {
+  value = var.create_vm
+}

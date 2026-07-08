@@ -1,0 +1,7 @@
+---
+- name: Ensure baseline packages are present
+  ansible.builtin.package:
+    name:
+      - curl
+      - ca-certificates
+    state: present
