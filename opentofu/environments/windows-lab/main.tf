@@ -30,6 +30,7 @@ module "windows_vm" {
   source_vm               = var.source_vm
   cpu                     = each.value.cpu
   memory_mb               = each.value.memory_mb
+  guest_id                = each.value.guest_id
   disks                   = each.value.disks
   customize_windows       = each.value.customize_windows
   computer_name           = each.value.computer_name

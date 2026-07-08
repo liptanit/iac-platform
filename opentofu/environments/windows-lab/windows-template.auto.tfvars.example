@@ -10,31 +10,34 @@ create_vm = false
 source_vm = "/Datacenter SVB/vm/IaC-Lab/tpl-windows-server-2025-kps-reatime"
 
 windows_vms = {
-  "iac-win-managed-01" = {
-    cpu       = 4
-    memory_mb = 32768
+  "iac-win-managed-5e-01" = {
+    cpu                     = 4
+    memory_mb               = 32768
+    guest_id                = "windows9Server64Guest"
+    firmware                = "efi"
+    efi_secure_boot_enabled = true
     disks = [
       {
         label            = "disk0"
         size_gb          = 300
         unit_number      = 0
-        thin_provisioned = true
+        thin_provisioned = false
       },
       {
         label            = "disk1"
         size_gb          = 200
         unit_number      = 1
-        thin_provisioned = true
+        thin_provisioned = false
       }
     ]
 
     # Use VMware Guest Customization only after the sysprepped template is verified.
     customize_windows = true
-    computer_name     = "IAC-WIN-01"
+    computer_name     = "IAC-WIN-5E-01"
     workgroup         = "WORKGROUP"
     ipv4_address      = ""
     ipv4_netmask      = 24
-    ipv4_gateway      = "10.1.0.254"
+    ipv4_gateway      = ""
     dns_server_list   = ["10.1.0.9", "10.1.0.254"]
     dns_suffix_list   = ["kingpower.local"]
   }

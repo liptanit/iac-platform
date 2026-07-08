@@ -16,7 +16,7 @@ resource "vsphere_virtual_machine" "this" {
 
   num_cpus = var.cpu
   memory   = var.memory_mb
-  guest_id = data.vsphere_virtual_machine.source.guest_id
+  guest_id = var.guest_id == "" ? data.vsphere_virtual_machine.source.guest_id : var.guest_id
 
   wait_for_guest_ip_timeout  = var.wait_for_guest_ip_timeout
   wait_for_guest_net_timeout = var.wait_for_guest_net_timeout
@@ -59,11 +59,11 @@ resource "vsphere_virtual_machine" "this" {
         }
 
         network_interface {
-          ipv4_address = var.ipv4_address
-          ipv4_netmask = var.ipv4_netmask
+          ipv4_address = var.ipv4_address == "" ? null : var.ipv4_address
+          ipv4_netmask = var.ipv4_address == "" ? null : var.ipv4_netmask
         }
 
-        ipv4_gateway    = var.ipv4_gateway
+        ipv4_gateway    = var.ipv4_gateway == "" ? null : var.ipv4_gateway
         dns_server_list = var.dns_server_list
         dns_suffix_list = var.dns_suffix_list
       }

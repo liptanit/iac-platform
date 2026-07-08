@@ -8,6 +8,12 @@ variable "source_vm" { type = string }
 variable "cpu" { type = number }
 variable "memory_mb" { type = number }
 
+variable "guest_id" {
+  description = "Optional guest OS identifier override for the managed clone. Empty inherits from the source template."
+  type        = string
+  default     = ""
+}
+
 variable "firmware" {
   description = "Optional firmware override. Empty preserves provider default from source clone."
   type        = string
