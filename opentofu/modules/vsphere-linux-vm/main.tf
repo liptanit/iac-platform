@@ -13,6 +13,9 @@ resource "vsphere_virtual_machine" "this" {
   memory   = var.memory_mb
   guest_id = data.vsphere_virtual_machine.template.guest_id
 
+  wait_for_guest_ip_timeout  = 0
+  wait_for_guest_net_timeout = 0
+
   scsi_type = data.vsphere_virtual_machine.template.scsi_type
 
   network_interface {
