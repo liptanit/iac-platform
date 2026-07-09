@@ -34,6 +34,8 @@
             "open_vm_tools": run("systemctl is-active open-vm-tools"),
             "zabbix_agent2": run("systemctl is-active zabbix-agent2"),
             "zabbix_agent2_config": run("grep -E '^(Server|ServerActive|Hostname|HostMetadata)=' /etc/zabbix/zabbix_agent2.conf 2>/dev/null"),
+            "ssh_password_auth": run("sshd -T | grep -E '^(passwordauthentication|kbdinteractiveauthentication|usepam) '"),
+            "iacadmin_password_status": run("passwd -S iacadmin 2>/dev/null"),
             "ip4": run("ip -4 -br addr"),
             "default_route": run("ip route show default"),
             "listening": run("ss -lntp"),

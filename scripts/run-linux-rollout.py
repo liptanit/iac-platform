@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import os
 import re
 import shlex
@@ -136,14 +137,27 @@ def precheck(vms: list[dict[str, str]], env: dict[str, str], log: Path, allow_us
 
 
 def ansible_playbook(playbook: str, *, env: dict[str, str], log: Path, report_dir: Path) -> None:
-    run([
+    extra_vars = {"linux_report_dir": str(report_dir / "host-reports")}
+    if env.get("IAC_LINUX_LOGIN_USER"):
+        extra_vars["linux_login_user"] = env["IAC_LINUX_LOGIN_USER"]
+    if env.get("IAC_LINUX_LOGIN_PASSWORD_HASH"):
+        extra_vars["linux_login_password_hash"] = env["IAC_LINUX_LOGIN_PASSWORD_HASH"]
+    if env.get("IAC_LINUX_SSH_PASSWORD_AUTH_ENABLED"):
+        extra_vars["linux_ssh_password_auth_enabled"] = env["IAC_LINUX_SSH_PASSWORD_AUTH_ENABLED"]
+
+    extra_vars_path = report_dir / "linux-extra-vars.json"
+    extra_vars_path.write_text(json.dumps(extra_vars), encoding="utf-8")
+    extra_vars_path.chmod(0o600)
+
+    command = [
         str(ANSIBLE),
         "-i",
         str(DEFAULT_INVENTORY),
         str(REPO / "ansible" / "playbooks" / playbook),
         "-e",
-        f"linux_report_dir={report_dir / 'host-reports'}",
-    ], env=env, log=log)
+        f"@{extra_vars_path}",
+    ]
+    run(command, env=env, log=log)
 
 
 def write_report(report: Path, lines: Iterable[str]) -> None:

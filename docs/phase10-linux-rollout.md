@@ -66,6 +66,9 @@ The Linux baseline:
 - writes `/var/lib/iac/baseline.txt`
 - sets timezone to `Asia/Bangkok`
 - starts `open-vm-tools`
+- optionally unlocks the local login user and enables SSH password
+  authentication when `IAC_LINUX_LOGIN_PASSWORD_HASH` and
+  `IAC_LINUX_SSH_PASSWORD_AUTH_ENABLED=1` are set in the IaC environment
 - configures Zabbix Agent 2:
   - `Server=10.1.0.15`
   - `ServerActive=10.1.0.15`

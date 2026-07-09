@@ -33,6 +33,33 @@
   community.general.timezone:
     name: "{{ linux_timezone | default('Asia/Bangkok') }}"
 
+- name: Set local SSH login password when supplied
+  ansible.builtin.user:
+    name: "{{ linux_login_user | default(ansible_user | default('iacadmin')) }}"
+    password: "{{ linux_login_password_hash }}"
+    password_lock: false
+    update_password: always
+  no_log: true
+  when: linux_login_password_hash is defined and linux_login_password_hash | length > 0
+
+- name: Configure SSH password authentication when requested
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/01-iac-password-auth.conf
+    mode: "0644"
+    content: |
+      PasswordAuthentication yes
+      KbdInteractiveAuthentication no
+      UsePAM yes
+  notify: Restart ssh
+  when: linux_ssh_password_auth_enabled | default(false) | bool
+
+- name: Remove older SSH password authentication override
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/90-iac-password-auth.conf
+    state: absent
+  notify: Restart ssh
+  when: linux_ssh_password_auth_enabled | default(false) | bool
+
 - name: Ensure VMware Tools service is running
   ansible.builtin.service:
     name: open-vm-tools
