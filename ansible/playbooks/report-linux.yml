@@ -1,0 +1,59 @@
+---
+- name: Build Linux post-clone validation report
+  hosts: linux
+  become: true
+  gather_facts: true
+  vars:
+    linux_report_dir: /opt/appserver/backups/iac/linux-postclone-reports
+  tasks:
+    - name: Ensure local report directory exists
+      ansible.builtin.file:
+        path: "{{ linux_report_dir }}"
+        state: directory
+        mode: "0750"
+      delegate_to: localhost
+      run_once: true
+      become: false
+
+    - name: Collect Linux validation signals
+      ansible.builtin.shell: |
+        set -e
+        python3 - <<'PY'
+        import json, os, pathlib, platform, subprocess
+
+        def run(command):
+            completed = subprocess.run(command, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            return {"rc": completed.returncode, "output": completed.stdout.strip()}
+
+        report = {
+            "hostname": platform.node(),
+            "os": " ".join(platform.freedesktop_os_release().get(k, "") for k in ("NAME", "VERSION")).strip(),
+            "kernel": platform.release(),
+            "cloud_init": run("cloud-init status --wait"),
+            "marker": pathlib.Path("/var/lib/iac/baseline.txt").exists(),
+            "qemu_guest_agent": run("systemctl is-active qemu-guest-agent"),
+            "zabbix_agent2": run("systemctl is-active zabbix-agent2"),
+            "zabbix_agent2_config": run("grep -E '^(Server|ServerActive|Hostname|HostMetadata)=' /etc/zabbix/zabbix_agent2.conf 2>/dev/null"),
+            "ip4": run("ip -4 -br addr"),
+            "default_route": run("ip route show default"),
+            "listening": run("ss -lntp"),
+            "packages": run("dpkg-query -W -f='${Package} ${Version}\\n' curl ca-certificates qemu-guest-agent zabbix-agent2 2>/dev/null"),
+        }
+        print(json.dumps(report, indent=2, sort_keys=True))
+        PY
+      register: linux_validation_report
+      changed_when: false
+
+    - name: Write per-host validation report locally
+      ansible.builtin.copy:
+        dest: "{{ linux_report_dir }}/{{ inventory_hostname }}.json"
+        content: "{{ linux_validation_report.stdout }}\n"
+        mode: "0640"
+      delegate_to: localhost
+      become: false
+
+    - name: Show report path
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          report: "{{ linux_report_dir }}/{{ inventory_hostname }}.json"

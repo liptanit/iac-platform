@@ -56,3 +56,19 @@ scripts/run-windows-rollout.py \
 ```
 
 See `docs/phase9-windows-production-rollout.md` for the complete gate sequence.
+
+## Linux rollout
+
+Plan only:
+
+```bash
+scripts/run-linux-rollout.py --config examples/linux-vms.phase10.toml
+```
+
+Apply and validate:
+
+```bash
+scripts/run-linux-rollout.py --config examples/linux-vms.phase10.toml --apply --report
+```
+
+See `docs/phase10-linux-rollout.md` for the Linux rollout flow.

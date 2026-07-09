@@ -1,7 +1,81 @@
 ---
+- name: Install Zabbix repository package on Ubuntu
+  ansible.builtin.apt:
+    deb: "{{ linux_zabbix_release_deb_url | default('https://repo.zabbix.com/zabbix/7.4/release/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.4+ubuntu24.04_all.deb') }}"
+    state: present
+  when: ansible_facts.os_family == "Debian"
+
+- name: Update apt cache after Zabbix repository install
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_facts.os_family == "Debian"
+
 - name: Ensure baseline packages are present
   ansible.builtin.package:
     name:
       - curl
       - ca-certificates
+      - gnupg
+      - qemu-guest-agent
+      - zabbix-agent2
     state: present
+
+- name: Ensure baseline marker directory exists
+  ansible.builtin.file:
+    path: /var/lib/iac
+    state: directory
+    mode: "0755"
+
+- name: Write Linux baseline marker
+  ansible.builtin.copy:
+    dest: /var/lib/iac/baseline.txt
+    mode: "0644"
+    content: |
+      Managed by OpenTofu + Ansible
+      Hostname: {{ ansible_facts.hostname | default(inventory_hostname) }}
+      Applied: {{ ansible_facts.date_time.iso8601 | default('unknown') }}
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ linux_timezone | default('Asia/Bangkok') }}"
+
+- name: Ensure qemu guest agent is running
+  ansible.builtin.service:
+    name: qemu-guest-agent
+    enabled: true
+    state: started
+
+- name: Configure Zabbix Agent 2 server
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agent2.conf
+    regexp: "^Server="
+    line: "Server={{ linux_zabbix_server | default('10.1.0.15') }}"
+  notify: Restart zabbix-agent2
+
+- name: Configure Zabbix Agent 2 active server
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agent2.conf
+    regexp: "^ServerActive="
+    line: "ServerActive={{ linux_zabbix_server | default('10.1.0.15') }}"
+  notify: Restart zabbix-agent2
+
+- name: Configure Zabbix Agent 2 hostname
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agent2.conf
+    regexp: "^Hostname="
+    line: "Hostname={{ ansible_facts.hostname | default(inventory_hostname) }}"
+  notify: Restart zabbix-agent2
+
+- name: Configure Zabbix Agent 2 host metadata
+  ansible.builtin.lineinfile:
+    path: /etc/zabbix/zabbix_agent2.conf
+    regexp: "^HostMetadata="
+    line: "HostMetadata={{ linux_zabbix_host_metadata | default('Linux') }}"
+  notify: Restart zabbix-agent2
+
+- name: Ensure Zabbix Agent 2 is running
+  ansible.builtin.service:
+    name: zabbix-agent2
+    enabled: true
+    state: started
