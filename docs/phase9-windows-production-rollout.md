@@ -58,7 +58,7 @@ scripts/run-windows-rollout.py \
   --config examples/windows-vms.phase8.toml \
   --validate-only \
   --postclone \
-  --postclone-vars examples/windows-postclone-policy.example.yml \
+  --postclone-vars examples/windows-postclone-policy.production.yml \
   --report
 ```
 
@@ -88,6 +88,7 @@ The post-clone baseline is implemented in:
 - `ansible/playbooks/postclone-windows.yml`
 - `ansible/playbooks/report-windows.yml`
 - `examples/windows-postclone-policy.example.yml`
+- `examples/windows-postclone-policy.production.yml`
 
 Supported policy areas:
 
@@ -103,6 +104,16 @@ Supported policy areas:
 
 The example policy keeps RDP disabled and does not join a domain or install
 agents until the required site-specific values are set.
+
+The current production policy approved on 2026-07-09:
+
+- Enables RDP.
+- Does not join a domain.
+- Installs Zabbix Agent 2 through the SYSAP bootstrap script:
+  `http://10.1.0.15/agent/windows/Install-ZabbixWindowsAgent.ps1`.
+- Points Zabbix `Server` and `ServerActive` to `10.1.0.15`.
+- Leaves Trend AI Deep Security / Vision One Endpoint Security disabled until
+  the approved installer command, token, and service name are supplied.
 
 ## Adding More Windows VMs
 

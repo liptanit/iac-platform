@@ -62,6 +62,6 @@ scripts/run-windows-rollout.py \
   --config examples/windows-vms.phase8.toml \
   --validate-only \
   --postclone \
-  --postclone-vars examples/windows-postclone-policy.example.yml \
+  --postclone-vars examples/windows-postclone-policy.production.yml \
   --report
 ```

@@ -99,7 +99,32 @@
     - windows_automation_admin_name | length > 0
     - windows_automation_admin_password | length > 0
 
-- name: Install Zabbix agent when configured
+- name: Check Zabbix agent service before install
+  ansible.windows.win_service_info:
+    name: "{{ windows_zabbix_agent_service_name }}"
+  register: windows_zabbix_service_info
+  when: windows_zabbix_agent_enabled | bool
+
+- name: Install Zabbix agent through bootstrap script when configured
+  ansible.windows.win_shell: |
+    $ErrorActionPreference = 'Stop'
+    $url = '{{ windows_zabbix_agent_install_script_url }}'
+    $server = '{{ windows_zabbix_server }}'
+    $hostname = $env:COMPUTERNAME
+    $metadata = '{{ windows_zabbix_host_metadata }}'
+    $script = (New-Object Net.WebClient).DownloadString($url)
+    $tempScript = Join-Path $env:TEMP 'Install-ZabbixWindowsAgent.ps1'
+    Set-Content -Path $tempScript -Value $script -Encoding UTF8
+    & powershell.exe -ExecutionPolicy Bypass -File $tempScript -ZabbixServer $server -Hostname $hostname -HostMetadata $metadata -ForceAgent2
+  register: windows_zabbix_script_install
+  changed_when: true
+  when:
+    - windows_zabbix_agent_enabled | bool
+    - windows_zabbix_agent_install_method == "script"
+    - windows_zabbix_agent_install_script_url | length > 0
+    - windows_zabbix_force_reinstall | bool or (windows_zabbix_service_info.services | default([]) | length == 0)
+
+- name: Install Zabbix agent from MSI when configured
   ansible.windows.win_package:
     path: "{{ windows_zabbix_agent_installer_url }}"
     product_id: "{{ windows_zabbix_agent_product_id }}"
@@ -107,6 +132,7 @@
     state: present
   when:
     - windows_zabbix_agent_enabled | bool
+    - windows_zabbix_agent_install_method == "msi"
     - windows_zabbix_agent_installer_url | length > 0
 
 - name: Ensure Zabbix agent service is running when configured

@@ -52,6 +52,11 @@ windows_audit_subcategories:
     failure: "enable"
 
 windows_zabbix_agent_enabled: false
+windows_zabbix_agent_install_method: "script"
+windows_zabbix_agent_install_script_url: "http://10.1.0.15/agent/windows/Install-ZabbixWindowsAgent.ps1"
+windows_zabbix_server: "10.1.0.15"
+windows_zabbix_host_metadata: "Windows"
+windows_zabbix_force_reinstall: false
 windows_zabbix_agent_product_id: "Zabbix Agent 2"
 windows_zabbix_agent_installer_url: ""
 windows_zabbix_agent_arguments: "/quiet /norestart"

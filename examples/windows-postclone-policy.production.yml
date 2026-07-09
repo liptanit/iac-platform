@@ -1,0 +1,34 @@
+---
+# Production baseline currently approved by Payong on 2026-07-09.
+
+windows_rdp_enabled: true
+
+windows_domain_join_enabled: false
+windows_domain_name: ""
+windows_domain_ou_path: ""
+
+windows_automation_admin_name: ""
+# Set ANSIBLE_AUTOMATION_ADMIN_PASSWORD in a root-only env file before enabling.
+
+windows_zabbix_agent_enabled: true
+windows_zabbix_agent_install_method: "script"
+windows_zabbix_agent_install_script_url: "http://10.1.0.15/agent/windows/Install-ZabbixWindowsAgent.ps1"
+windows_zabbix_server: "10.1.0.15"
+windows_zabbix_host_metadata: "Windows"
+windows_zabbix_force_reinstall: false
+windows_zabbix_agent_service_name: "Zabbix Agent 2"
+
+# Trend AI Deep Security / Vision One Endpoint Security can be enabled after
+# the approved installer command, token, and service name are supplied.
+windows_edr_enabled: false
+windows_edr_install_command: ""
+windows_edr_service_name: ""
+
+windows_update_policy_enabled: true
+windows_update_au_options: 4
+windows_update_scheduled_install_day: 0
+windows_update_scheduled_install_time: 3
+
+windows_firewall_enabled: true
+windows_enable_icmp: true
+windows_audit_policy_enabled: true
