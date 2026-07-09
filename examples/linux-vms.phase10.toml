@@ -19,12 +19,12 @@ runcmd = [
 
 [[vm]]
 name = "iac-linux-managed-10-01"
-ipv4 = "10.1.0.117"
+ipv4 = "10.1.0.131"
 instance_id = "iac-linux-managed-10-01-nocloud"
 seed_iso_path = "iac/seed/iac-linux-managed-10-01-seed.iso"
 
 [[vm]]
 name = "iac-linux-managed-10-02"
-ipv4 = "10.1.0.118"
+ipv4 = "10.1.0.132"
 instance_id = "iac-linux-managed-10-02-nocloud"
 seed_iso_path = "iac/seed/iac-linux-managed-10-02-seed.iso"

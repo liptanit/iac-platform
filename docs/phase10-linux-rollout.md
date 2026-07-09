@@ -20,8 +20,8 @@ examples/linux-vms.phase10.toml
 
 Requested IPs:
 
-- `iac-linux-managed-10-01` / `10.1.0.117`
-- `iac-linux-managed-10-02` / `10.1.0.118`
+- `iac-linux-managed-10-01` / `10.1.0.131`
+- `iac-linux-managed-10-02` / `10.1.0.132`
 
 The runner has a ping-based IP conflict guard. It blocks clone/apply when a
 requested IP already replies unless `--allow-used-ip` is explicitly supplied.
