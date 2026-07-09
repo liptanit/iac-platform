@@ -1,0 +1,28 @@
+---
+# Production Linux baseline policy for IaC managed Ubuntu VMs.
+# This file is editable from IaC Control and intended as the operator-facing
+# source of approved Linux baseline values.
+
+linux_timezone: "Asia/Bangkok"
+
+linux_zabbix_agent_enabled: true
+linux_zabbix_server: "10.1.0.15"
+linux_zabbix_host_metadata: "Linux"
+linux_zabbix_agent2_deb_url: "http://10.1.0.15/agent/linux/zabbix-agent2_7.4.12-1+ubuntu24.04_amd64.deb"
+
+linux_vmware_tools_enabled: true
+linux_baseline_marker_enabled: true
+
+linux_ssh_password_auth_enabled: true
+# Keep the password hash in a root-only runtime env or inventory vault, not here.
+linux_login_user: "iacadmin"
+
+linux_required_packages:
+  - curl
+  - ca-certificates
+  - gnupg
+  - open-vm-tools
+
+linux_future_edr_enabled: false
+linux_future_edr_install_command: ""
+linux_future_edr_service_name: ""
