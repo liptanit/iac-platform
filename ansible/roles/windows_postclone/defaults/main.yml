@@ -1,0 +1,62 @@
+---
+windows_postclone_marker_dir: C:\ProgramData\IaC
+windows_postclone_marker: C:\ProgramData\IaC\postclone.txt
+
+windows_timezone: "SE Asia Standard Time"
+
+windows_rdp_enabled: false
+windows_rdp_firewall_profiles:
+  - domain
+  - private
+  - public
+
+windows_automation_admin_name: ""
+windows_automation_admin_password: "{{ lookup('env', 'ANSIBLE_AUTOMATION_ADMIN_PASSWORD') }}"
+windows_automation_admin_groups:
+  - Administrators
+
+windows_domain_join_enabled: false
+windows_domain_name: ""
+windows_domain_ou_path: ""
+windows_domain_user: "{{ lookup('env', 'ANSIBLE_DOMAIN_JOIN_USER') }}"
+windows_domain_password: "{{ lookup('env', 'ANSIBLE_DOMAIN_JOIN_PASSWORD') }}"
+windows_domain_reboot: true
+
+windows_update_policy_enabled: true
+windows_update_au_options: 4
+windows_update_scheduled_install_day: 0
+windows_update_scheduled_install_time: 3
+
+windows_firewall_enabled: true
+windows_enable_icmp: true
+
+windows_audit_policy_enabled: true
+windows_audit_subcategories:
+  - name: "Logon"
+    success: "enable"
+    failure: "enable"
+  - name: "Logoff"
+    success: "enable"
+    failure: "disable"
+  - name: "Account Lockout"
+    success: "enable"
+    failure: "enable"
+  - name: "User Account Management"
+    success: "enable"
+    failure: "enable"
+  - name: "Security Group Management"
+    success: "enable"
+    failure: "enable"
+  - name: "Policy Change"
+    success: "enable"
+    failure: "enable"
+
+windows_zabbix_agent_enabled: false
+windows_zabbix_agent_product_id: "Zabbix Agent 2"
+windows_zabbix_agent_installer_url: ""
+windows_zabbix_agent_arguments: "/quiet /norestart"
+windows_zabbix_agent_service_name: "Zabbix Agent 2"
+
+windows_edr_enabled: false
+windows_edr_install_command: ""
+windows_edr_service_name: ""

@@ -53,3 +53,15 @@ Validation only:
 cd /opt/appserver/apps/iac/repositories/iac-platform
 scripts/run-windows-rollout.py --config examples/windows-vms.phase8.toml --validate-only
 ```
+
+Post-clone production baseline and report:
+
+```bash
+cd /opt/appserver/apps/iac/repositories/iac-platform
+scripts/run-windows-rollout.py \
+  --config examples/windows-vms.phase8.toml \
+  --validate-only \
+  --postclone \
+  --postclone-vars examples/windows-postclone-policy.example.yml \
+  --report
+```

@@ -1,0 +1,19 @@
+---
+- name: Windows post-clone production baseline
+  hosts: windows
+  gather_facts: true
+  roles:
+    - windows_postclone
+
+  post_tasks:
+    - name: Show post-clone summary
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          ansible_host: "{{ ansible_host | default('') }}"
+          hostname: "{{ ansible_facts.hostname | default('') }}"
+          os: "{{ ansible_facts.distribution | default('') }}"
+          rdp_enabled: "{{ windows_rdp_enabled | bool }}"
+          domain_join_enabled: "{{ windows_domain_join_enabled | bool }}"
+          zabbix_enabled: "{{ windows_zabbix_agent_enabled | bool }}"
+          edr_enabled: "{{ windows_edr_enabled | bool }}"

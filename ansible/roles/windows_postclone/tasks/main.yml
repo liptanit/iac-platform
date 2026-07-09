@@ -1,0 +1,184 @@
+---
+- name: Ensure IaC marker directory exists
+  ansible.windows.win_file:
+    path: "{{ windows_postclone_marker_dir }}"
+    state: directory
+
+- name: Set timezone
+  ansible.windows.win_timezone:
+    timezone: "{{ windows_timezone }}"
+
+- name: Configure RDP service policy
+  ansible.windows.win_regedit:
+    path: HKLM:\System\CurrentControlSet\Control\Terminal Server
+    name: fDenyTSConnections
+    data: "{{ 0 if windows_rdp_enabled | bool else 1 }}"
+    type: dword
+
+- name: Configure RDP firewall rule
+  community.windows.win_firewall_rule:
+    name: IaC-RDP-3389
+    display_name: IaC RDP 3389
+    description: RDP access managed by IaC post-clone policy.
+    enabled: "{{ windows_rdp_enabled | bool }}"
+    direction: in
+    action: allow
+    protocol: tcp
+    localport: 3389
+    profiles: "{{ windows_rdp_firewall_profiles }}"
+
+- name: Ensure Windows Firewall profiles are enabled
+  ansible.windows.win_shell: |
+    Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True
+  changed_when: false
+  when: windows_firewall_enabled | bool
+
+- name: Enable ICMP echo request firewall rule
+  community.windows.win_firewall_rule:
+    name: IaC-Allow-ICMPv4-Echo
+    display_name: IaC Allow ICMPv4 Echo
+    description: Allow ICMPv4 echo request for IaC validation.
+    enabled: true
+    direction: in
+    action: allow
+    protocol: icmpv4
+    profiles:
+      - domain
+      - private
+      - public
+  when: windows_enable_icmp | bool
+
+- name: Configure Windows Update policy registry path
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+    state: present
+  when: windows_update_policy_enabled | bool
+
+- name: Configure Windows Update automatic update options
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+    name: AUOptions
+    data: "{{ windows_update_au_options | int }}"
+    type: dword
+  when: windows_update_policy_enabled | bool
+
+- name: Configure Windows Update scheduled install day
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+    name: ScheduledInstallDay
+    data: "{{ windows_update_scheduled_install_day | int }}"
+    type: dword
+  when: windows_update_policy_enabled | bool
+
+- name: Configure Windows Update scheduled install time
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+    name: ScheduledInstallTime
+    data: "{{ windows_update_scheduled_install_time | int }}"
+    type: dword
+  when: windows_update_policy_enabled | bool
+
+- name: Configure audit policy subcategories
+  ansible.windows.win_command: >
+    auditpol.exe /set /subcategory:"{{ item.name }}"
+    /success:{{ item.success }} /failure:{{ item.failure }}
+  loop: "{{ windows_audit_subcategories }}"
+  changed_when: true
+  when: windows_audit_policy_enabled | bool
+
+- name: Ensure automation local admin exists when configured
+  ansible.windows.win_user:
+    name: "{{ windows_automation_admin_name }}"
+    password: "{{ windows_automation_admin_password }}"
+    password_never_expires: true
+    user_cannot_change_password: true
+    state: present
+    groups: "{{ windows_automation_admin_groups }}"
+  no_log: true
+  when:
+    - windows_automation_admin_name | length > 0
+    - windows_automation_admin_password | length > 0
+
+- name: Install Zabbix agent when configured
+  ansible.windows.win_package:
+    path: "{{ windows_zabbix_agent_installer_url }}"
+    product_id: "{{ windows_zabbix_agent_product_id }}"
+    arguments: "{{ windows_zabbix_agent_arguments }}"
+    state: present
+  when:
+    - windows_zabbix_agent_enabled | bool
+    - windows_zabbix_agent_installer_url | length > 0
+
+- name: Ensure Zabbix agent service is running when configured
+  ansible.windows.win_service:
+    name: "{{ windows_zabbix_agent_service_name }}"
+    start_mode: auto
+    state: started
+  when: windows_zabbix_agent_enabled | bool
+
+- name: Run EDR install command when configured
+  ansible.windows.win_shell: "{{ windows_edr_install_command }}"
+  no_log: true
+  when:
+    - windows_edr_enabled | bool
+    - windows_edr_install_command | length > 0
+
+- name: Ensure EDR service is running when configured
+  ansible.windows.win_service:
+    name: "{{ windows_edr_service_name }}"
+    start_mode: auto
+    state: started
+  when:
+    - windows_edr_enabled | bool
+    - windows_edr_service_name | length > 0
+
+- name: Join domain when configured
+  ansible.windows.win_shell: |
+    $password = ConvertTo-SecureString '{{ windows_domain_password }}' -AsPlainText -Force
+    $credential = New-Object System.Management.Automation.PSCredential('{{ windows_domain_user }}', $password)
+    $currentDomain = (Get-CimInstance Win32_ComputerSystem).Domain
+    if ($currentDomain -ieq '{{ windows_domain_name }}') {
+      Write-Output 'Already joined to requested domain.'
+      exit 0
+    }
+    $parameters = @{
+      DomainName = '{{ windows_domain_name }}'
+      Credential = $credential
+      Force = $true
+      ErrorAction = 'Stop'
+    }
+    if ('{{ windows_domain_ou_path }}'.Length -gt 0) {
+      $parameters['OUPath'] = '{{ windows_domain_ou_path }}'
+    }
+    Add-Computer @parameters
+    Write-Output 'Domain join requested; reboot is required.'
+  no_log: true
+  register: windows_domain_join
+  changed_when: "'Domain join requested' in windows_domain_join.stdout"
+  when:
+    - windows_domain_join_enabled | bool
+    - windows_domain_name | length > 0
+    - windows_domain_user | length > 0
+    - windows_domain_password | length > 0
+
+- name: Reboot after domain join when required
+  ansible.windows.win_reboot:
+    msg: Rebooting after IaC domain join.
+    reboot_timeout: 1800
+    post_reboot_delay: 30
+  when:
+    - windows_domain_join_enabled | bool
+    - windows_domain_reboot | bool
+    - windows_domain_join is defined
+    - windows_domain_join.changed | bool
+
+- name: Write post-clone marker
+  ansible.windows.win_copy:
+    dest: "{{ windows_postclone_marker }}"
+    content: |
+      Managed by IaC post-clone baseline.
+      Host: {{ inventory_hostname }}
+      RDP enabled: {{ windows_rdp_enabled | bool }}
+      Domain join enabled: {{ windows_domain_join_enabled | bool }}
+      Zabbix enabled: {{ windows_zabbix_agent_enabled | bool }}
+      EDR enabled: {{ windows_edr_enabled | bool }}

@@ -50,6 +50,18 @@ scripts/run-windows-rollout.py \
   --validate-only
 ```
 
+Post-clone production baseline and per-host report for already managed VMs:
+
+```bash
+cd /opt/appserver/apps/iac/repositories/iac-platform
+scripts/run-windows-rollout.py \
+  --config examples/windows-vms.phase8.toml \
+  --validate-only \
+  --postclone \
+  --postclone-vars examples/windows-postclone-policy.example.yml \
+  --report
+```
+
 ## Safety Gates
 
 The runner:
@@ -62,7 +74,35 @@ The runner:
 5. Runs `tofu apply` only when `--apply` is supplied.
 6. Runs WinRM ping, Windows baseline, and Windows shell validation after apply
    or in validation-only mode.
-7. Writes a timestamped report under `/opt/appserver/backups/iac`.
+7. Optionally runs the post-clone production baseline when `--postclone` is
+   supplied.
+8. Optionally writes per-host JSON validation reports when `--report` is
+   supplied.
+9. Writes a timestamped workflow report under `/opt/appserver/backups/iac`.
+
+## Post-Clone Production Baseline
+
+The post-clone baseline is implemented in:
+
+- `ansible/roles/windows_postclone`
+- `ansible/playbooks/postclone-windows.yml`
+- `ansible/playbooks/report-windows.yml`
+- `examples/windows-postclone-policy.example.yml`
+
+Supported policy areas:
+
+- RDP enabled/disabled and firewall rule management.
+- Optional domain join with credentials supplied from environment variables.
+- Optional automation/local admin account with password supplied from
+  `ANSIBLE_AUTOMATION_ADMIN_PASSWORD`.
+- Optional Zabbix Agent 2 install/start.
+- Optional EDR install/start through a configured command and service name.
+- Windows Update policy, timezone, firewall, ICMP, and audit policy.
+- Per-host JSON report with OS, domain, WinRM, RDP, ICMP, Zabbix, hotfix, and
+  shell crash signals.
+
+The example policy keeps RDP disabled and does not join a domain or install
+agents until the required site-specific values are set.
 
 ## Adding More Windows VMs
 

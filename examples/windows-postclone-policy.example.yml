@@ -1,0 +1,29 @@
+---
+# Copy this file before changing production policy.
+
+windows_rdp_enabled: false
+
+windows_domain_join_enabled: false
+windows_domain_name: ""
+windows_domain_ou_path: ""
+
+windows_automation_admin_name: ""
+# Set ANSIBLE_AUTOMATION_ADMIN_PASSWORD in a root-only env file instead of here.
+
+windows_zabbix_agent_enabled: false
+windows_zabbix_agent_installer_url: ""
+windows_zabbix_agent_arguments: "/quiet /norestart"
+windows_zabbix_agent_service_name: "Zabbix Agent 2"
+
+windows_edr_enabled: false
+windows_edr_install_command: ""
+windows_edr_service_name: ""
+
+windows_update_policy_enabled: true
+windows_update_au_options: 4
+windows_update_scheduled_install_day: 0
+windows_update_scheduled_install_time: 3
+
+windows_firewall_enabled: true
+windows_enable_icmp: true
+windows_audit_policy_enabled: true

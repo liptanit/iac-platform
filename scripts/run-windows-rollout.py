@@ -117,19 +117,49 @@ def write_report(report: Path, lines: Iterable[str]) -> None:
     report.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def ansible_playbook(
+    playbook: str,
+    *,
+    env: dict[str, str],
+    log: Path,
+    report_dir: Path,
+    extra_args: list[str] | None = None,
+) -> None:
+    command = [
+        str(ANSIBLE),
+        "-i",
+        str(DEFAULT_INVENTORY),
+        str(REPO / "ansible" / "playbooks" / playbook),
+        "-e",
+        f"windows_report_dir={report_dir / 'host-reports'}",
+    ]
+    if extra_args:
+        command.extend(extra_args)
+    run(command, env=env, log=log)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path, help="Windows VM TOML inventory.")
     parser.add_argument("--apply", action="store_true", help="Run tofu apply after an approved plan.")
     parser.add_argument("--validate-only", action="store_true", help="Skip OpenTofu and run WinRM/Ansible validation only.")
+    parser.add_argument("--postclone", action="store_true", help="Run post-clone production baseline playbook after apply or with --validate-only.")
+    parser.add_argument("--postclone-vars", type=Path, default=None, help="Optional Ansible vars YAML for post-clone policy.")
+    parser.add_argument("--report", action="store_true", help="Write per-host JSON validation reports.")
     parser.add_argument("--allow-destroy", action="store_true", help="Allow plans that include destroy actions.")
     parser.add_argument("--skip-shell-validation", action="store_true", help="Skip Windows shell crash validation.")
     parser.add_argument("--report-dir", type=Path, default=None)
+    parser.add_argument("--iac-env", type=Path, default=Path("/opt/appserver/config/iac/iac.env"))
     parser.add_argument("--vcenter-env", type=Path, default=Path("/opt/appserver/config/iac/vcenter.env"))
     parser.add_argument("--ansible-env", type=Path, default=Path("/opt/appserver/config/iac/windows-ansible.env"))
     args = parser.parse_args()
 
     require_file(args.config, "Windows VM inventory")
+    require_file(args.iac_env, "IaC env file")
+    if args.postclone_vars:
+        require_file(args.postclone_vars, "post-clone vars file")
+    if (args.postclone or args.report) and not (args.apply or args.validate_only):
+        raise SystemExit("--postclone and --report run only with --apply or --validate-only")
     if not args.validate_only:
         require_file(args.vcenter_env, "vCenter env file")
     require_file(args.ansible_env, "Windows Ansible env file")
@@ -141,6 +171,7 @@ def main() -> int:
 
     vm_names = inventory_names(args.config)
     env = os.environ.copy()
+    env.update(load_env_file(args.iac_env))
     env.update(load_env_file(args.vcenter_env))
     env.update(load_env_file(args.ansible_env))
 
@@ -182,10 +213,15 @@ def main() -> int:
 
     should_validate = args.apply or args.validate_only
     if should_validate:
-        run([str(ANSIBLE), "-i", str(DEFAULT_INVENTORY), str(REPO / "ansible" / "playbooks" / "ping-windows.yml")], env=env, log=log)
-        run([str(ANSIBLE), "-i", str(DEFAULT_INVENTORY), str(REPO / "ansible" / "playbooks" / "baseline-windows.yml")], env=env, log=log)
+        ansible_playbook("ping-windows.yml", env=env, log=log, report_dir=report_dir)
+        ansible_playbook("baseline-windows.yml", env=env, log=log, report_dir=report_dir)
+        if args.postclone:
+            extra_args = ["-e", f"@{args.postclone_vars}"] if args.postclone_vars else None
+            ansible_playbook("postclone-windows.yml", env=env, log=log, report_dir=report_dir, extra_args=extra_args)
         if not args.skip_shell_validation:
-            run([str(ANSIBLE), "-i", str(DEFAULT_INVENTORY), str(REPO / "ansible" / "playbooks" / "validate-windows-shell.yml")], env=env, log=log)
+            ansible_playbook("validate-windows-shell.yml", env=env, log=log, report_dir=report_dir)
+        if args.report:
+            ansible_playbook("report-windows.yml", env=env, log=log, report_dir=report_dir)
 
     write_report(report, [
         "# Phase 9 Windows Rollout Summary",
@@ -194,6 +230,8 @@ def main() -> int:
         f"- VM names: {', '.join(vm_names)}",
         f"- Apply requested: `{args.apply}`",
         f"- Validate only: `{args.validate_only}`",
+        f"- Post-clone baseline requested: `{args.postclone}`",
+        f"- Per-host report requested: `{args.report}`",
         f"- Plan exit code: `{plan_exit}`",
         f"- Command log: `{log}`",
         "",
@@ -202,7 +240,7 @@ def main() -> int:
         "- Generated Windows OpenTofu tfvars and Ansible WinRM inventory.",
         "- OpenTofu validation/plan ran unless validate-only mode was selected.",
         "- Destroy actions are blocked by default.",
-        "- WinRM, baseline, and shell validation ran only after apply or in validate-only mode.",
+        "- WinRM, baseline, post-clone baseline, shell validation, and per-host reports run only when requested after apply or in validate-only mode.",
     ])
     print(f"wrote {report}")
     return 0

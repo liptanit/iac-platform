@@ -1,0 +1,74 @@
+---
+- name: Build Windows post-clone validation report
+  hosts: windows
+  gather_facts: true
+  vars:
+    windows_report_dir: /opt/appserver/backups/iac/windows-postclone-reports
+  tasks:
+    - name: Ensure local report directory exists
+      ansible.builtin.file:
+        path: "{{ windows_report_dir }}"
+        state: directory
+        mode: "0750"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Collect Windows validation signals
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Continue'
+        $rdpDeny = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -ErrorAction SilentlyContinue).fDenyTSConnections
+        $rdpFirewall = Get-NetFirewallRule -DisplayName 'IaC RDP 3389' -ErrorAction SilentlyContinue |
+          Select-Object -First 1 -ExpandProperty Enabled
+        $icmpFirewall = Get-NetFirewallRule -DisplayName 'IaC Allow ICMPv4 Echo' -ErrorAction SilentlyContinue |
+          Select-Object -First 1 -ExpandProperty Enabled
+        $winrm = Get-Service WinRM -ErrorAction SilentlyContinue
+        $zabbix = Get-Service 'Zabbix Agent 2' -ErrorAction SilentlyContinue
+        $audit = auditpol.exe /get /category:* 2>$null
+        $hotfixes = Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 5 HotFixID, InstalledOn, Description
+        $marker = Test-Path 'C:\ProgramData\IaC\postclone.txt'
+        $baselineMarker = Test-Path 'C:\ProgramData\IaC\baseline.txt'
+        $since = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        $shellCrashes = Get-WinEvent -FilterHashtable @{
+          LogName = 'Application'
+          StartTime = $since
+        } -ErrorAction SilentlyContinue | Where-Object {
+          $_.ProviderName -eq 'Application Error' -and
+          ($_.Message -match 'ShellHost\.exe' -or
+           $_.Message -match 'Explorer\.EXE' -or
+           $_.Message -match 'ControlCenter\.dll')
+        } | Select-Object -First 10 TimeCreated, Id, Message
+
+        [PSCustomObject]@{
+          computer_name = $env:COMPUTERNAME
+          domain = (Get-CimInstance Win32_ComputerSystem).Domain
+          os_caption = (Get-CimInstance Win32_OperatingSystem).Caption
+          os_version = (Get-CimInstance Win32_OperatingSystem).Version
+          last_boot = $since
+          timezone = (Get-TimeZone).Id
+          winrm_status = if ($winrm) { $winrm.Status.ToString() } else { 'Missing' }
+          rdp_enabled = ($rdpDeny -eq 0)
+          rdp_firewall_enabled = $rdpFirewall
+          icmp_firewall_enabled = $icmpFirewall
+          zabbix_agent_status = if ($zabbix) { $zabbix.Status.ToString() } else { 'Missing' }
+          baseline_marker = $baselineMarker
+          postclone_marker = $marker
+          recent_hotfixes = $hotfixes
+          shell_crash_count = @($shellCrashes).Count
+          shell_crashes = $shellCrashes
+          audit_policy_sample = ($audit | Select-Object -First 80)
+        } | ConvertTo-Json -Depth 6
+      register: windows_validation_report
+      changed_when: false
+
+    - name: Write per-host validation report locally
+      ansible.builtin.copy:
+        dest: "{{ windows_report_dir }}/{{ inventory_hostname }}.json"
+        content: "{{ windows_validation_report.stdout }}\n"
+        mode: "0640"
+      delegate_to: localhost
+
+    - name: Show report path
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          report: "{{ windows_report_dir }}/{{ inventory_hostname }}.json"

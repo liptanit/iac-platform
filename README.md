@@ -44,4 +44,15 @@ Apply and validate:
 scripts/run-windows-rollout.py --config examples/windows-vms.phase8.toml --apply
 ```
 
+Run post-clone baseline and per-host reports for managed VMs:
+
+```bash
+scripts/run-windows-rollout.py \
+  --config examples/windows-vms.phase8.toml \
+  --validate-only \
+  --postclone \
+  --postclone-vars examples/windows-postclone-policy.example.yml \
+  --report
+```
+
 See `docs/phase9-windows-production-rollout.md` for the complete gate sequence.
