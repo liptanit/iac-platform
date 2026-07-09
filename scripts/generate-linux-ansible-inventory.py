@@ -42,6 +42,7 @@ def main() -> int:
         f"[{args.group}:vars]",
         "ansible_connection=ssh",
         f"ansible_ssh_private_key_file={args.private_key}",
+        "ansible_ssh_common_args=-o StrictHostKeyChecking=accept-new",
         "ansible_python_interpreter=/usr/bin/python3",
         "",
     ])

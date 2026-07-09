@@ -1,0 +1,7 @@
+---
+- name: Linux SSH connectivity smoke test
+  hosts: linux
+  gather_facts: false
+  tasks:
+    - name: Check SSH connectivity
+      ansible.builtin.ping:

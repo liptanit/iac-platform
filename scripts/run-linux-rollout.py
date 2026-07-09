@@ -233,7 +233,7 @@ def main() -> int:
             run(["tofu", "apply", "-input=false", "-auto-approve", str(report_dir / "linux.tfplan")], cwd=LINUX_ENV, env=env, log=log)
 
     if args.apply or args.validate_only:
-        ansible_playbook("ping.yml", env=env, log=log, report_dir=report_dir)
+        ansible_playbook("ping-linux.yml", env=env, log=log, report_dir=report_dir)
         ansible_playbook("baseline-linux.yml", env=env, log=log, report_dir=report_dir)
         if args.report:
             ansible_playbook("report-linux.yml", env=env, log=log, report_dir=report_dir)
