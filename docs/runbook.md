@@ -26,3 +26,30 @@ set -a
 set +a
 /opt/appserver/venv-iac-ansible/bin/ansible-playbook -i ansible/inventories/lab/hosts.ini ansible/playbooks/ping.yml
 ```
+
+## Phase 9 Windows rollout
+
+Use the Phase 9 runner for repeatable Windows VM changes. It generates
+OpenTofu and Ansible files from one TOML inventory, blocks destroy actions by
+default, and writes a report under `/opt/appserver/backups/iac`.
+
+Plan only:
+
+```bash
+cd /opt/appserver/apps/iac/repositories/iac-platform
+scripts/run-windows-rollout.py --config examples/windows-vms.phase8.toml
+```
+
+Apply and validate:
+
+```bash
+cd /opt/appserver/apps/iac/repositories/iac-platform
+scripts/run-windows-rollout.py --config examples/windows-vms.phase8.toml --apply
+```
+
+Validation only:
+
+```bash
+cd /opt/appserver/apps/iac/repositories/iac-platform
+scripts/run-windows-rollout.py --config examples/windows-vms.phase8.toml --validate-only
+```
