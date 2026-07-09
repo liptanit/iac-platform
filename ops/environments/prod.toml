@@ -1,0 +1,11 @@
+name = "prod"
+enabled = true
+description = "Production-managed IaC inventories on sysap."
+allowed_actions = ["plan", "apply", "validate"]
+
+windows_inventory = "ops/inventories/prod/windows.toml"
+linux_inventory = "ops/inventories/prod/linux.toml"
+
+# The prod Linux inventory represents VMs already managed in OpenTofu state.
+# Creation/IP-conflict prechecks are for brand-new clone waves, not no-change plans.
+linux_skip_precheck = true

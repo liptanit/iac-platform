@@ -1,5 +1,46 @@
 # Runbook
 
+## Phase 11 operations entry point
+
+Use the Phase 11 wrapper for normal create/change/validation work. It creates an
+operation folder under `/opt/appserver/backups/iac`, backs up state/config before
+running, writes command logs and reports, and blocks apply without an approval
+token.
+
+Plan Windows:
+
+```bash
+cd /opt/appserver/apps/iac/repositories/iac-platform
+scripts/iac-ops.py plan --env prod --platform windows --report
+```
+
+Plan Linux:
+
+```bash
+cd /opt/appserver/apps/iac/repositories/iac-platform
+scripts/iac-ops.py plan --env prod --platform linux --report
+```
+
+Apply after approval:
+
+```bash
+scripts/iac-ops.py apply \
+  --env prod \
+  --platform linux \
+  --report \
+  --approved-by "Payong" \
+  --approval-token "APPROVE-PROD-LINUX-APPLY-XXXXXXXXXXXX"
+```
+
+Validate only:
+
+```bash
+scripts/iac-ops.py validate --env prod --platform linux --report
+```
+
+See `docs/ops/phase11-operations-layer.md` for the full create/change/destroy
+runbook and UI/runner recommendation.
+
 ## Read-only lab plan
 
 Run as root while Phase 3 credentials are root-only:

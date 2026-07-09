@@ -1,0 +1,7 @@
+name = "test"
+enabled = false
+description = "Test IaC profile. Enable only after test VLAN/IP inventory is approved."
+allowed_actions = ["plan", "apply", "validate", "destroy"]
+
+windows_inventory = "ops/inventories/test/windows.toml"
+linux_inventory = "ops/inventories/test/linux.toml"

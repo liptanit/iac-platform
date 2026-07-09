@@ -173,6 +173,7 @@ def main() -> int:
     parser.add_argument("--allow-destroy", action="store_true")
     parser.add_argument("--allow-used-ip", action="store_true", help="Bypass ping-based IP conflict guard.")
     parser.add_argument("--skip-precheck", action="store_true")
+    parser.add_argument("--skip-seed-upload", action="store_true", help="Skip NoCloud seed ISO generation/upload for read-only plans.")
     parser.add_argument("--report-dir", type=Path, default=None)
     parser.add_argument("--iac-env", type=Path, default=Path("/opt/appserver/config/iac/iac.env"))
     parser.add_argument("--vcenter-env", type=Path, default=Path("/opt/appserver/config/iac/vcenter.env"))
@@ -207,18 +208,19 @@ def main() -> int:
         if not args.skip_precheck:
             precheck(vms, env, log, args.allow_used_ip)
 
-        run([
-            str(REPO / "scripts" / "generate-nocloud-seeds.py"),
-            "--config",
-            str(args.config),
-            "--output-dir",
-            str(args.seed_output_dir),
-            "--upload",
-            "--datastore",
-            args.seed_datastore,
-            "--datastore-dir",
-            args.seed_datastore_dir,
-        ], env=govc_env(env), log=log)
+        if not args.skip_seed_upload:
+            run([
+                str(REPO / "scripts" / "generate-nocloud-seeds.py"),
+                "--config",
+                str(args.config),
+                "--output-dir",
+                str(args.seed_output_dir),
+                "--upload",
+                "--datastore",
+                args.seed_datastore,
+                "--datastore-dir",
+                args.seed_datastore_dir,
+            ], env=govc_env(env), log=log)
         run([
             str(REPO / "scripts" / "generate-lab-tfvars.py"),
             "--config",

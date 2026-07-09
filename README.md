@@ -6,10 +6,9 @@ Primary vCenter: 10.0.1.90
 
 ## Current phase
 
-Phase 9 provides a repeatable Windows rollout workflow around the proven
-OpenTofu + Ansible path. The current managed Windows VMs are
-`iac-win-managed-7b-01` (`10.1.0.115`) and `iac-win-managed-8-02`
-(`10.1.0.116`).
+Phase 11 adds an operations layer around the proven OpenTofu + Ansible path.
+Use `scripts/iac-ops.py` for normal plan/apply/validate work so state/config
+backups, reports, and approval gates are captured consistently.
 
 ## Layout
 
@@ -22,6 +21,8 @@ OpenTofu + Ansible path. The current managed Windows VMs are
 - requirements/ansible-python.txt: Python packages expected in the IaC Ansible venv
 - docs: design notes and runbooks
 - scripts: helper commands
+- ops/environments: dev/test/prod operations profiles
+- ops/inventories: environment-specific Windows/Linux inventories
 
 ## Secrets
 
@@ -31,6 +32,12 @@ keys, or vault passwords. Runtime credentials live under
 `windows-ansible.env`.
 
 ## Windows rollout
+
+Preferred Phase 11 entry point:
+
+```bash
+scripts/iac-ops.py plan --env prod --platform windows --report
+```
 
 Plan only:
 
@@ -59,6 +66,12 @@ See `docs/phase9-windows-production-rollout.md` for the complete gate sequence.
 
 ## Linux rollout
 
+Preferred Phase 11 entry point:
+
+```bash
+scripts/iac-ops.py plan --env prod --platform linux --report
+```
+
 Plan only:
 
 ```bash
@@ -72,3 +85,7 @@ scripts/run-linux-rollout.py --config examples/linux-vms.phase10.toml --apply --
 ```
 
 See `docs/phase10-linux-rollout.md` for the Linux rollout flow.
+
+See `docs/ops/phase11-operations-layer.md` for create/change/destroy runbooks,
+automatic backup/report behavior, approval tokens, environment profiles, and the
+Semaphore/Gitea runner recommendation.

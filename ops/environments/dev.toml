@@ -1,0 +1,7 @@
+name = "dev"
+enabled = false
+description = "Development IaC profile. Enable only after dev VLAN/IP inventory is approved."
+allowed_actions = ["plan", "apply", "validate", "destroy"]
+
+windows_inventory = "ops/inventories/dev/windows.toml"
+linux_inventory = "ops/inventories/dev/linux.toml"

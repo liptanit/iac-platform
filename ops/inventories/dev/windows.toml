@@ -1,0 +1,24 @@
+# Disabled template inventory. Copy to real dev IPs before enabling ops/environments/dev.toml.
+[defaults]
+datacenter = "Datacenter SVB"
+cluster = "GZ Cluster"
+datastore = "Web-Datastore"
+network = "SVB Server"
+vm_folder = "IaC-Dev"
+source_vm = "/Datacenter SVB/vm/IaC-Lab/tpl-windows-server-2025-kps-reatime"
+guest_id = "windows9Server64Guest"
+firmware = "efi"
+efi_secure_boot_enabled = true
+cpu = 2
+memory_mb = 8192
+workgroup = "WORKGROUP"
+ipv4_netmask = 24
+ipv4_gateway = "10.1.0.254"
+dns_server_list = ["10.1.0.9", "10.1.0.254"]
+dns_suffix_list = ["kingpower.local"]
+customize_windows = true
+
+[[vm]]
+name = "iac-dev-win-01"
+computer_name = "IAC-D-WIN-01"
+ipv4_address = "10.1.0.161"

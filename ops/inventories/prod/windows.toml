@@ -1,0 +1,40 @@
+[defaults]
+datacenter = "Datacenter SVB"
+cluster = "GZ Cluster"
+datastore = "Web-Datastore"
+network = "SVB Server"
+vm_folder = "IaC-Lab"
+source_vm = "/Datacenter SVB/vm/IaC-Lab/tpl-windows-server-2025-kps-reatime"
+guest_id = "windows9Server64Guest"
+firmware = "efi"
+efi_secure_boot_enabled = true
+cpu = 4
+memory_mb = 32768
+workgroup = "WORKGROUP"
+ipv4_netmask = 24
+ipv4_gateway = "10.1.0.254"
+dns_server_list = ["10.1.0.9", "10.1.0.254"]
+dns_suffix_list = ["kingpower.local"]
+customize_windows = true
+
+[[defaults.disks]]
+label = "disk0"
+size_gb = 300
+unit_number = 0
+thin_provisioned = false
+
+[[defaults.disks]]
+label = "disk1"
+size_gb = 200
+unit_number = 1
+thin_provisioned = false
+
+[[vm]]
+name = "iac-win-managed-7b-01"
+computer_name = "IAC-WIN-7B-01"
+ipv4_address = "10.1.0.115"
+
+[[vm]]
+name = "iac-win-managed-8-02"
+computer_name = "IAC-WIN-8-02"
+ipv4_address = "10.1.0.116"
