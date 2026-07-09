@@ -47,7 +47,7 @@ windows_audit_subcategories:
   - name: "Security Group Management"
     success: "enable"
     failure: "enable"
-  - name: "Policy Change"
+  - name: "Audit Policy Change"
     success: "enable"
     failure: "enable"
 
