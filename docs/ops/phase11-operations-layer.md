@@ -111,3 +111,19 @@ Use a staged approach:
 Semaphore is a better first UI for operations because it natively models
 inventories, credentials, job templates, approvals, and Ansible output. Gitea
 Runner is better later if the team wants CI from pull requests.
+
+## Semaphore UI
+
+Semaphore should call `ansible/playbooks/semaphore-iac-ops.yml`, not raw
+OpenTofu commands. The playbook always changes directory back to the real repo
+at `/opt/appserver/apps/iac/repositories/iac-platform` before running
+`scripts/iac-ops.py`, so it uses the current local state and evidence paths.
+
+Suggested Semaphore templates:
+
+- `Linux Prod Plan`: `-e iac_action=plan -e iac_platform=linux`
+- `Windows Prod Plan`: `-e iac_action=plan -e iac_platform=windows`
+- `Linux Prod Validate`: `-e iac_action=validate -e iac_platform=linux`
+- `Windows Prod Validate`: `-e iac_action=validate -e iac_platform=windows -e iac_postclone=true`
+- `Linux Prod Apply`: add survey prompts for `iac_approved_by` and `iac_approval_token`.
+- `Windows Prod Apply`: add survey prompts for `iac_approved_by` and `iac_approval_token`, plus `iac_postclone=true` when post-clone policy should run.

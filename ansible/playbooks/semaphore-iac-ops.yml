@@ -1,0 +1,58 @@
+---
+- name: Run Phase 11 IaC operation from Semaphore
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    iac_repo_dir: /opt/appserver/apps/iac/repositories/iac-platform
+    iac_env: prod
+    iac_report: true
+    iac_postclone: false
+    iac_postclone_vars: examples/windows-postclone-policy.production.yml
+    iac_approved_by: ""
+    iac_approval_token: ""
+
+  tasks:
+    - name: Validate requested IaC operation
+      ansible.builtin.assert:
+        that:
+          - iac_action in ["plan", "apply", "validate", "destroy"]
+          - iac_platform in ["linux", "windows"]
+        fail_msg: "Set iac_action to plan/apply/validate/destroy and iac_platform to linux/windows."
+
+    - name: Build IaC operation command
+      ansible.builtin.set_fact:
+        iac_command:
+          - "{{ iac_repo_dir }}/scripts/iac-ops.py"
+          - "{{ iac_action }}"
+          - "--env"
+          - "{{ iac_env }}"
+          - "--platform"
+          - "{{ iac_platform }}"
+
+    - name: Add report flag
+      ansible.builtin.set_fact:
+        iac_command: "{{ iac_command + ['--report'] }}"
+      when: iac_report | bool
+
+    - name: Add Windows post-clone policy flags
+      ansible.builtin.set_fact:
+        iac_command: "{{ iac_command + ['--postclone', '--postclone-vars', iac_postclone_vars] }}"
+      when: iac_platform == "windows" and (iac_postclone | bool)
+
+    - name: Add approval gate fields
+      ansible.builtin.set_fact:
+        iac_command: "{{ iac_command + ['--approved-by', iac_approved_by, '--approval-token', iac_approval_token] }}"
+      when: iac_action in ["apply", "destroy"]
+
+    - name: Run IaC operation wrapper
+      ansible.builtin.command:
+        argv: "{{ iac_command }}"
+        chdir: "{{ iac_repo_dir }}"
+      register: iac_operation
+      changed_when: iac_action in ["apply", "destroy"]
+
+    - name: Show IaC operation output
+      ansible.builtin.debug:
+        var: iac_operation.stdout_lines
