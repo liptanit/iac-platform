@@ -19,3 +19,4 @@ terraform.rc
 *.log
 .tmp/
 ansible/inventories/windows/hosts.ini
+ansible/inventories/linux/hosts.ini
