@@ -60,4 +60,11 @@ resource "vsphere_virtual_machine" "this" {
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
   }
+
+  lifecycle {
+    ignore_changes = [
+      disk[0].thin_provisioned,
+      vapp,
+    ]
+  }
 }
