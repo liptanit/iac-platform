@@ -1,25 +1,18 @@
 ---
-- name: Install Zabbix repository package on Ubuntu
-  ansible.builtin.apt:
-    deb: "{{ linux_zabbix_release_deb_url | default('https://repo.zabbix.com/zabbix/7.4/release/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.4+ubuntu24.04_all.deb') }}"
-    state: present
-  when: ansible_facts.os_family == "Debian"
-
-- name: Update apt cache after Zabbix repository install
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
-  when: ansible_facts.os_family == "Debian"
-
 - name: Ensure baseline packages are present
   ansible.builtin.package:
     name:
       - curl
       - ca-certificates
       - gnupg
-      - qemu-guest-agent
-      - zabbix-agent2
+      - open-vm-tools
     state: present
+
+- name: Install Zabbix Agent 2 from SYSAP package mirror on Ubuntu
+  ansible.builtin.apt:
+    deb: "{{ linux_zabbix_agent2_deb_url | default('http://10.1.0.15/agent/linux/zabbix-agent2_7.4.12-1+ubuntu24.04_amd64.deb') }}"
+    state: present
+  when: ansible_facts.os_family == "Debian"
 
 - name: Ensure baseline marker directory exists
   ansible.builtin.file:
@@ -40,9 +33,9 @@
   community.general.timezone:
     name: "{{ linux_timezone | default('Asia/Bangkok') }}"
 
-- name: Ensure qemu guest agent is running
+- name: Ensure VMware Tools service is running
   ansible.builtin.service:
-    name: qemu-guest-agent
+    name: open-vm-tools
     enabled: true
     state: started
 

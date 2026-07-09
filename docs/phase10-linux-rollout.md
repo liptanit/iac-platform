@@ -59,12 +59,13 @@ scripts/run-linux-rollout.py \
 
 The Linux baseline:
 
-- installs `curl`, `ca-certificates`, `gnupg`, `qemu-guest-agent`, and
+- installs `curl`, `ca-certificates`, `gnupg`, `open-vm-tools`, and
   `zabbix-agent2`
-- adds the Zabbix 7.4 Ubuntu repository when needed
+- installs Zabbix Agent 2 from the SYSAP package mirror when the VM does not
+  have direct internet access
 - writes `/var/lib/iac/baseline.txt`
 - sets timezone to `Asia/Bangkok`
-- starts `qemu-guest-agent`
+- starts `open-vm-tools`
 - configures Zabbix Agent 2:
   - `Server=10.1.0.15`
   - `ServerActive=10.1.0.15`

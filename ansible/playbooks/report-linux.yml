@@ -31,13 +31,13 @@
             "kernel": platform.release(),
             "cloud_init": run("cloud-init status --wait"),
             "marker": pathlib.Path("/var/lib/iac/baseline.txt").exists(),
-            "qemu_guest_agent": run("systemctl is-active qemu-guest-agent"),
+            "open_vm_tools": run("systemctl is-active open-vm-tools"),
             "zabbix_agent2": run("systemctl is-active zabbix-agent2"),
             "zabbix_agent2_config": run("grep -E '^(Server|ServerActive|Hostname|HostMetadata)=' /etc/zabbix/zabbix_agent2.conf 2>/dev/null"),
             "ip4": run("ip -4 -br addr"),
             "default_route": run("ip route show default"),
             "listening": run("ss -lntp"),
-            "packages": run("dpkg-query -W -f='${Package} ${Version}\\n' curl ca-certificates qemu-guest-agent zabbix-agent2 2>/dev/null"),
+            "packages": run("dpkg-query -W -f='${Package} ${Version}\\n' curl ca-certificates open-vm-tools zabbix-agent2 2>/dev/null"),
         }
         print(json.dumps(report, indent=2, sort_keys=True))
         PY
