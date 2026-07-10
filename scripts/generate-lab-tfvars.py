@@ -55,12 +55,12 @@ def main() -> int:
         raise SystemExit("defaults must set ssh_public_key or ssh_public_key_file")
 
     lines = [
-        f"datacenter = {hcl_string(args.datacenter)}",
-        f"cluster    = {hcl_string(args.cluster)}",
-        f"datastore  = {hcl_string(args.datastore)}",
-        f"network    = {hcl_string(args.network)}",
+        f"datacenter       = {hcl_string(args.datacenter)}",
+        f"cluster          = {hcl_string(args.cluster)}",
+        f"datastore        = {hcl_string(args.datastore)}",
+        f"network          = {hcl_string(args.network)}",
         f"selected_vcenter = {hcl_string(args.selected_vcenter)}",
-        f"vm_folder  = {hcl_string(args.vm_folder)}",
+        f"vm_folder        = {hcl_string(args.vm_folder)}",
         "",
         f"create_vm = {str(args.create_vm).lower()}",
         "",
