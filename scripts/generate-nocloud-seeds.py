@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import shutil
 import subprocess
 import sys
@@ -102,6 +103,31 @@ def run(command: list[str], *, dry_run: bool, allow_fail: bool = False) -> None:
             subprocess.run(command, check=True)
 
 
+def run_quiet(command: list[str], *, dry_run: bool) -> None:
+    print("+ " + " ".join(command))
+    if dry_run:
+        return
+    env = os.environ.copy()
+    env.setdefault("GOVC_PROGRESS", "0")
+    completed = subprocess.run(
+        command,
+        check=False,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    output = "\n".join(
+        line
+        for line in completed.stdout.replace("\r", "\n").splitlines()
+        if line.strip() and "Uploading..." not in line
+    )
+    if output:
+        print(output)
+    if completed.returncode != 0:
+        raise subprocess.CalledProcessError(completed.returncode, command, output=completed.stdout)
+
+
 def upload_iso(iso_path: Path, datastore: str, datastore_dir: str, dry_run: bool) -> str:
     govc = shutil.which("govc")
     if not govc:
@@ -110,7 +136,7 @@ def upload_iso(iso_path: Path, datastore: str, datastore_dir: str, dry_run: bool
     target = f"{datastore_dir.rstrip('/')}/{iso_path.name}"
     run([govc, "datastore.mkdir", "-ds", datastore, datastore_dir], dry_run=dry_run, allow_fail=True)
     run([govc, "datastore.rm", "-ds", datastore, target], dry_run=dry_run, allow_fail=True)
-    run([govc, "datastore.upload", "-ds", datastore, str(iso_path), target], dry_run=dry_run)
+    run_quiet([govc, "datastore.upload", "-ds", datastore, str(iso_path), target], dry_run=dry_run)
     return target
 
 
