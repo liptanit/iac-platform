@@ -216,6 +216,7 @@ def main() -> int:
     parser.add_argument("--network", default="")
     parser.add_argument("--seed-datastore", default="")
     parser.add_argument("--seed-datastore-dir", default="iac/seed")
+    parser.add_argument("--state-key", default="", help="Optional isolated OpenTofu local backend state key.")
     args = parser.parse_args()
 
     require_file(args.config, "Linux VM inventory")
@@ -280,7 +281,13 @@ def main() -> int:
             selected_network,
         ], env=env, log=log)
         run(["tofu", "fmt", "-check", "-recursive"], cwd=REPO, env=env, log=log)
-        run(["tofu", "init", "-input=false"], cwd=LINUX_ENV, env=env, log=log)
+        init_command = ["tofu", "init", "-input=false"]
+        state_key = args.state_key.strip()
+        if state_key:
+            state_path = Path("/opt/appserver/data/iac/state/lab") / state_key / "terraform.tfstate"
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            init_command.extend(["-reconfigure", f"-backend-config=path={state_path}"])
+        run(init_command, cwd=LINUX_ENV, env=env, log=log)
         run(["tofu", "validate"], cwd=LINUX_ENV, env=env, log=log)
         plan = run([
             "tofu",

@@ -86,6 +86,24 @@ def rel_path(path: str) -> Path:
     return value if value.is_absolute() else REPO / value
 
 
+def runtime_vcenter_id() -> str:
+    return (os.environ.get("iac_vcenter_id") or os.environ.get("IAC_VCENTER_ID") or "").strip()
+
+
+def scoped_inventory_path(env_name: str, platform: str, vcenter_id: str) -> Path | None:
+    if not vcenter_id:
+        return None
+    candidate = REPO / "ops" / "inventories" / env_name / f"{platform}-{vcenter_id}.toml"
+    return candidate if candidate.exists() else None
+
+
+def scoped_state_key(env_name: str, platform: str, vcenter_id: str, config_path: Path) -> str:
+    scoped = scoped_inventory_path(env_name, platform, vcenter_id)
+    if scoped and scoped.resolve() == config_path.resolve():
+        return f"{env_name}_{platform}_{vcenter_id}"
+    return ""
+
+
 def git_head() -> str:
     completed = subprocess.run(
         ["git", "rev-parse", "--short=12", "HEAD"],
@@ -169,6 +187,8 @@ def write_operation_summary(
     token: str,
     command: list[str],
     exit_code: int,
+    vcenter_id: str = "",
+    state_key: str = "",
 ) -> Path:
     apply_token = approval_token(
         env_name=args.env,
@@ -196,6 +216,8 @@ def write_operation_summary(
                 f"- Git HEAD: `{head}`",
                 f"- Profile: `{profile_path}`",
                 f"- Inventory: `{config_path}`",
+                f"- vCenter ID: `{vcenter_id or ''}`",
+                f"- State key: `{state_key or 'default'}`",
                 f"- Approved by: `{args.approved_by or ''}`",
                 f"- Approval token: `{args.approval_token or ''}`",
                 f"- Approval token for this action: `{token}`",
@@ -254,11 +276,14 @@ def build_runner_command(args: argparse.Namespace, profile: dict[str, Any], conf
             raise SystemExit("destroy is not implemented for Linux through the rollout runner yet")
         if args.report and args.action != "plan":
             command.append("--report")
-        if args.skip_precheck or profile.get("linux_skip_precheck", False):
+        state_key = getattr(args, "state_key", "")
+        if args.skip_precheck or (profile.get("linux_skip_precheck", False) and not state_key):
             command.append("--skip-precheck")
         if args.action == "plan":
             command.append("--skip-seed-upload")
         command.extend(["--report-dir", str(operation_dir / "runner-report")])
+        if state_key:
+            command.extend(["--state-key", state_key])
         return command
 
     raise SystemExit(f"unsupported platform: {args.platform}")
@@ -287,14 +312,20 @@ def main() -> int:
         raise SystemExit(f"profile {args.env} is disabled; pass --allow-disabled-profile only for dry lab testing")
 
     default_config_key = f"{args.platform}_inventory"
+    vcenter_id = runtime_vcenter_id()
+    scoped_config = scoped_inventory_path(args.env, args.platform, vcenter_id)
     if args.config:
         config_path = args.config if args.config.is_absolute() else REPO / args.config
+    elif scoped_config:
+        config_path = scoped_config
     elif default_config_key in profile:
         config_path = rel_path(str(profile[default_config_key]))
     else:
         raise SystemExit(f"profile {args.env} has no {default_config_key}")
 
     head = git_head()
+    args.vcenter_id = vcenter_id
+    args.state_key = scoped_state_key(args.env, args.platform, vcenter_id, config_path)
     token = approval_token(
         env_name=args.env,
         platform=args.platform,
@@ -329,6 +360,8 @@ def main() -> int:
         token=token,
         command=command,
         exit_code=result.returncode,
+        vcenter_id=vcenter_id,
+        state_key=args.state_key,
     )
     archive = archive_operation(operation_dir)
     print(f"wrote {summary}")
