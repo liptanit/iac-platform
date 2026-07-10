@@ -251,19 +251,6 @@ def main() -> int:
         if not args.skip_precheck:
             precheck(vms, env, log, args.allow_used_ip)
 
-        if not args.skip_seed_upload:
-            run([
-                str(REPO / "scripts" / "generate-nocloud-seeds.py"),
-                "--config",
-                str(args.config),
-                "--output-dir",
-                str(args.seed_output_dir),
-                "--upload",
-                "--datastore",
-                selected_seed_datastore,
-                "--datastore-dir",
-                args.seed_datastore_dir,
-            ], env=govc_env(env), log=log)
         run([
             str(REPO / "scripts" / "generate-lab-tfvars.py"),
             "--config",
@@ -305,6 +292,19 @@ def main() -> int:
         if plan_has_destroy(plan.stdout) and not args.allow_destroy:
             raise SystemExit("plan includes destroy action; rerun with --allow-destroy only after explicit approval")
         if args.apply:
+            if plan.returncode == 2 and not args.skip_seed_upload:
+                run([
+                    str(REPO / "scripts" / "generate-nocloud-seeds.py"),
+                    "--config",
+                    str(args.config),
+                    "--output-dir",
+                    str(args.seed_output_dir),
+                    "--upload",
+                    "--datastore",
+                    selected_seed_datastore,
+                    "--datastore-dir",
+                    args.seed_datastore_dir,
+                ], env=govc_env(env), log=log)
             run(["tofu", "apply", "-input=false", "-auto-approve", str(report_dir / "linux.tfplan")], cwd=LINUX_ENV, env=env, log=log)
 
     if args.apply or args.validate_only:
