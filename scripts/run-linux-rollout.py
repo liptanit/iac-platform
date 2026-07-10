@@ -117,8 +117,40 @@ def govc_env(env: dict[str, str]) -> dict[str, str]:
     if "VSPHERE_PASSWORD" in result:
         result.setdefault("GOVC_PASSWORD", result["VSPHERE_PASSWORD"])
     result.setdefault("GOVC_INSECURE", "1")
-    result.setdefault("GOVC_DATACENTER", "Datacenter SVB")
+    result.setdefault("GOVC_DATACENTER", selected_value(env, "datacenter", "Datacenter SVB"))
     return result
+
+
+def env_value(env: dict[str, str], *keys: str) -> str:
+    for key in keys:
+        value = str(env.get(key, "")).strip()
+        if value:
+            return value
+    return ""
+
+
+def selected_value(env: dict[str, str], name: str, fallback: str) -> str:
+    return env_value(env, f"iac_vcenter_{name}", f"IAC_VCENTER_{name.upper()}") or fallback
+
+
+def first_selected(env: dict[str, str], name: str, fallback: str) -> str:
+    value = selected_value(env, name, fallback)
+    return next((item.strip() for item in value.split(",") if item.strip()), fallback)
+
+
+def apply_selected_vcenter_env(env: dict[str, str]) -> None:
+    host = env_value(env, "iac_vcenter_host", "IAC_VCENTER_HOST")
+    endpoint = env_value(env, "iac_vcenter_endpoint", "IAC_VCENTER_ENDPOINT")
+    if host:
+        env["VSPHERE_SERVER"] = host
+    elif endpoint:
+        env["VSPHERE_SERVER"] = endpoint.removeprefix("https://").removeprefix("http://").split("/", 1)[0].split(":", 1)[0]
+    username = env_value(env, "iac_vcenter_username", "IAC_VCENTER_USERNAME")
+    password = env_value(env, "iac_vcenter_password", "IAC_VCENTER_PASSWORD")
+    if username:
+        env["VSPHERE_USER"] = username
+    if password:
+        env["VSPHERE_PASSWORD"] = password
 
 
 def precheck(vms: list[dict[str, str]], env: dict[str, str], log: Path, allow_used_ip: bool) -> None:
@@ -178,7 +210,11 @@ def main() -> int:
     parser.add_argument("--iac-env", type=Path, default=Path("/opt/appserver/config/iac/iac.env"))
     parser.add_argument("--vcenter-env", type=Path, default=Path("/opt/appserver/config/iac/vcenter.env"))
     parser.add_argument("--seed-output-dir", type=Path, default=Path("/opt/appserver/data/iac/seed"))
-    parser.add_argument("--seed-datastore", default="MSA2060-Datastore2")
+    parser.add_argument("--datacenter", default="")
+    parser.add_argument("--cluster", default="")
+    parser.add_argument("--datastore", default="")
+    parser.add_argument("--network", default="")
+    parser.add_argument("--seed-datastore", default="")
     parser.add_argument("--seed-datastore-dir", default="iac/seed")
     args = parser.parse_args()
 
@@ -195,6 +231,12 @@ def main() -> int:
     env = os.environ.copy()
     env.update(load_env_file(args.iac_env))
     env.update(load_env_file(args.vcenter_env))
+    apply_selected_vcenter_env(env)
+    selected_datacenter = args.datacenter or selected_value(env, "datacenter", "Datacenter SVB")
+    selected_cluster = args.cluster or selected_value(env, "cluster", "SVB Cluster")
+    selected_datastore = args.datastore or first_selected(env, "datastores", "MSA2060-Datastore2")
+    selected_network = args.network or first_selected(env, "networks", "SVB Server")
+    selected_seed_datastore = args.seed_datastore or selected_datastore
 
     run([
         str(REPO / "scripts" / "generate-linux-ansible-inventory.py"),
@@ -217,7 +259,7 @@ def main() -> int:
                 str(args.seed_output_dir),
                 "--upload",
                 "--datastore",
-                args.seed_datastore,
+                selected_seed_datastore,
                 "--datastore-dir",
                 args.seed_datastore_dir,
             ], env=govc_env(env), log=log)
@@ -228,6 +270,14 @@ def main() -> int:
             "--output",
             str(DEFAULT_TFVARS),
             "--create-vm",
+            "--datacenter",
+            selected_datacenter,
+            "--cluster",
+            selected_cluster,
+            "--datastore",
+            selected_datastore,
+            "--network",
+            selected_network,
         ], env=env, log=log)
         run(["tofu", "fmt", "-check", "-recursive"], cwd=REPO, env=env, log=log)
         run(["tofu", "init", "-input=false"], cwd=LINUX_ENV, env=env, log=log)
