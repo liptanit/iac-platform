@@ -24,6 +24,12 @@ variable "network" {
   type        = string
 }
 
+variable "selected_vcenter" {
+  description = "Runtime vCenter endpoint selected by IaC Control."
+  type        = string
+  default     = ""
+}
+
 variable "vm_folder" {
   description = "Destination VM folder. Must exist before provisioning."
   type        = string

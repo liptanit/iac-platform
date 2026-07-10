@@ -32,6 +32,7 @@ def main() -> int:
     parser.add_argument("--cluster", default="SVB Cluster")
     parser.add_argument("--datastore", default="MSA2060-Datastore2")
     parser.add_argument("--network", default="SVB Server")
+    parser.add_argument("--selected-vcenter", default="")
     parser.add_argument("--vm-folder", default="IaC-Lab")
     parser.add_argument("--template", default="tpl-ubuntu-24.04-server")
     parser.add_argument("--cpu", type=int, default=2)
@@ -58,6 +59,7 @@ def main() -> int:
         f"cluster    = {hcl_string(args.cluster)}",
         f"datastore  = {hcl_string(args.datastore)}",
         f"network    = {hcl_string(args.network)}",
+        f"selected_vcenter = {hcl_string(args.selected_vcenter)}",
         f"vm_folder  = {hcl_string(args.vm_folder)}",
         "",
         f"create_vm = {str(args.create_vm).lower()}",

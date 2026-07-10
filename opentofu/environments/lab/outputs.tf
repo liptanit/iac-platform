@@ -1,5 +1,5 @@
 output "selected_vcenter" {
-  value = "10.0.1.90"
+  value = var.selected_vcenter
 }
 
 output "selected_datacenter" {

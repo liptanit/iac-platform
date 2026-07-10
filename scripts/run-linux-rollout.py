@@ -279,6 +279,8 @@ def main() -> int:
             selected_datastore,
             "--network",
             selected_network,
+            "--selected-vcenter",
+            env.get("VSPHERE_SERVER", ""),
         ], env=env, log=log)
         run(["tofu", "fmt", "-check", "-recursive"], cwd=REPO, env=env, log=log)
         init_command = ["tofu", "init", "-input=false"]
