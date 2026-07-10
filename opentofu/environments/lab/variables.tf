@@ -82,6 +82,10 @@ variable "vms" {
     cpu           = number
     memory_mb     = number
     disk_gb       = number
+    datacenter    = optional(string, "")
+    cluster       = optional(string, "")
+    datastore     = optional(string, "")
+    network       = optional(string, "")
     seed_iso_path = string
   }))
   default = {}

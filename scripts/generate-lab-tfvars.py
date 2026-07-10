@@ -74,6 +74,10 @@ def main() -> int:
         cpu = vm.get("cpu", defaults.get("cpu", args.cpu))
         memory_mb = vm.get("memory_mb", defaults.get("memory_mb", args.memory_mb))
         disk_gb = vm.get("disk_gb", defaults.get("disk_gb", args.disk_gb))
+        datacenter = vm.get("datacenter", defaults.get("datacenter", args.datacenter))
+        cluster = vm.get("cluster", defaults.get("cluster", args.cluster))
+        datastore = vm.get("datastore", defaults.get("datastore", args.datastore))
+        network = vm.get("network", defaults.get("network", args.network))
         seed_iso_path = vm.get(
             "seed_iso_path",
             f"{args.datastore_seed_dir.rstrip('/')}/{name}-seed.iso",
@@ -86,6 +90,10 @@ def main() -> int:
                 f"    cpu           = {cpu}",
                 f"    memory_mb     = {memory_mb}",
                 f"    disk_gb       = {disk_gb}",
+                f"    datacenter    = {hcl_string(datacenter)}",
+                f"    cluster       = {hcl_string(cluster)}",
+                f"    datastore     = {hcl_string(datastore)}",
+                f"    network       = {hcl_string(network)}",
                 f"    seed_iso_path = {hcl_string(seed_iso_path)}",
                 "  }",
             ]
