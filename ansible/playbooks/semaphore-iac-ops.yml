@@ -64,8 +64,19 @@
         iac_vcenter_networks: "{{ iac_vcenter_networks | default('') }}"
         iac_runner_tag: "{{ iac_runner_tag | default('') }}"
       register: iac_operation
+      failed_when: false
       changed_when: iac_action in ["apply", "destroy"]
+      no_log: true
 
-    - name: Show IaC operation output
+    - name: Show IaC operation result
       ansible.builtin.debug:
-        var: iac_operation.stdout_lines
+        msg: >-
+          IaC {{ iac_platform }} {{ iac_action }} completed with rc={{ iac_operation.rc }}.
+          Full evidence is stored under /opt/appserver/backups/iac/phase11_{{ iac_env }}_{{ iac_platform }}_{{ iac_action }}_*.
+
+    - name: Fail when IaC operation failed
+      ansible.builtin.fail:
+        msg: >-
+          IaC {{ iac_platform }} {{ iac_action }} failed with rc={{ iac_operation.rc }}.
+          Open the latest phase11 operation summary and command log under /opt/appserver/backups/iac for details.
+      when: iac_operation.rc != 0
