@@ -104,6 +104,12 @@ def scoped_state_key(env_name: str, platform: str, vcenter_id: str, config_path:
     return ""
 
 
+def scoped_state_path(state_key: str) -> Path | None:
+    if not state_key:
+        return None
+    return Path("/opt/appserver/data/iac/state/lab") / state_key / "terraform.tfstate"
+
+
 def git_head() -> str:
     completed = subprocess.run(
         ["git", "rev-parse", "--short=12", "HEAD"],
@@ -277,7 +283,9 @@ def build_runner_command(args: argparse.Namespace, profile: dict[str, Any], conf
         if args.report and args.action != "plan":
             command.append("--report")
         state_key = getattr(args, "state_key", "")
-        if args.skip_precheck or (profile.get("linux_skip_precheck", False) and not state_key):
+        state_path = scoped_state_path(state_key)
+        scoped_state_exists = bool(state_path and state_path.exists())
+        if args.skip_precheck or scoped_state_exists or (profile.get("linux_skip_precheck", False) and not state_key):
             command.append("--skip-precheck")
         if args.action == "plan":
             command.append("--skip-seed-upload")
