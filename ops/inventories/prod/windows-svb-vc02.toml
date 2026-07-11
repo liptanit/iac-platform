@@ -21,13 +21,13 @@ customize_windows = true
 label = "disk0"
 size_gb = 300
 unit_number = 0
-thin_provisioned = false
+thin_provisioned = true
 
 [[defaults.disks]]
 label = "disk1"
 size_gb = 200
 unit_number = 1
-thin_provisioned = false
+thin_provisioned = true
 
 [[vm]]
 name = "iac-win-svb-vc02-01"
