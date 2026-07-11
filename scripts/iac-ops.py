@@ -104,10 +104,11 @@ def scoped_state_key(env_name: str, platform: str, vcenter_id: str, config_path:
     return ""
 
 
-def scoped_state_path(state_key: str) -> Path | None:
+def scoped_state_path(platform: str, state_key: str) -> Path | None:
     if not state_key:
         return None
-    return Path("/opt/appserver/data/iac/state/lab") / state_key / "terraform.tfstate"
+    state_root = "windows-lab" if platform == "windows" else "lab"
+    return Path("/opt/appserver/data/iac/state") / state_root / state_key / "terraform.tfstate"
 
 
 def git_head() -> str:
@@ -270,6 +271,9 @@ def build_runner_command(args: argparse.Namespace, profile: dict[str, Any], conf
         if args.postclone_vars:
             command.extend(["--postclone-vars", str(args.postclone_vars)])
         command.extend(["--report-dir", str(operation_dir / "runner-report")])
+        state_key = getattr(args, "state_key", "")
+        if state_key:
+            command.extend(["--state-key", state_key])
         return command
 
     if args.platform == "linux":
@@ -283,7 +287,7 @@ def build_runner_command(args: argparse.Namespace, profile: dict[str, Any], conf
         if args.report and args.action != "plan":
             command.append("--report")
         state_key = getattr(args, "state_key", "")
-        state_path = scoped_state_path(state_key)
+        state_path = scoped_state_path(args.platform, state_key)
         scoped_state_exists = bool(state_path and state_path.exists())
         if args.skip_precheck or scoped_state_exists or (profile.get("linux_skip_precheck", False) and not state_key):
             command.append("--skip-precheck")

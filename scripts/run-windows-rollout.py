@@ -53,6 +53,38 @@ def load_env_file(path: Path) -> dict[str, str]:
     return env
 
 
+def env_value(env: dict[str, str], *keys: str) -> str:
+    for key in keys:
+        value = str(env.get(key, "")).strip()
+        if value:
+            return value
+    return ""
+
+
+def selected_value(env: dict[str, str], name: str, fallback: str) -> str:
+    return env_value(env, f"iac_vcenter_{name}", f"IAC_VCENTER_{name.upper()}") or fallback
+
+
+def first_selected(env: dict[str, str], name: str, fallback: str) -> str:
+    value = selected_value(env, name, fallback)
+    return next((item.strip() for item in value.split(",") if item.strip()), fallback)
+
+
+def apply_selected_vcenter_env(env: dict[str, str]) -> None:
+    host = env_value(env, "iac_vcenter_host", "IAC_VCENTER_HOST")
+    endpoint = env_value(env, "iac_vcenter_endpoint", "IAC_VCENTER_ENDPOINT")
+    if host:
+        env["VSPHERE_SERVER"] = host
+    elif endpoint:
+        env["VSPHERE_SERVER"] = endpoint.removeprefix("https://").removeprefix("http://").split("/", 1)[0].split(":", 1)[0]
+    username = env_value(env, "iac_vcenter_username", "IAC_VCENTER_USERNAME")
+    password = env_value(env, "iac_vcenter_password", "IAC_VCENTER_PASSWORD")
+    if username:
+        env["VSPHERE_USER"] = username
+    if password:
+        env["VSPHERE_PASSWORD"] = password
+
+
 def run(
     command: list[str],
     *,
@@ -152,6 +184,7 @@ def main() -> int:
     parser.add_argument("--iac-env", type=Path, default=Path("/opt/appserver/config/iac/iac.env"))
     parser.add_argument("--vcenter-env", type=Path, default=Path("/opt/appserver/config/iac/vcenter.env"))
     parser.add_argument("--ansible-env", type=Path, default=Path("/opt/appserver/config/iac/windows-ansible.env"))
+    parser.add_argument("--state-key", default="", help="Optional isolated OpenTofu local backend state key.")
     args = parser.parse_args()
 
     require_file(args.config, "Windows VM inventory")
@@ -174,6 +207,11 @@ def main() -> int:
     env.update(load_env_file(args.iac_env))
     env.update(load_env_file(args.vcenter_env))
     env.update(load_env_file(args.ansible_env))
+    apply_selected_vcenter_env(env)
+    selected_datacenter = selected_value(env, "datacenter", "Datacenter SVB")
+    selected_cluster = selected_value(env, "cluster", "GZ Cluster")
+    selected_datastore = first_selected(env, "datastores", "Web-Datastore")
+    selected_network = first_selected(env, "networks", "SVB Server")
 
     run([
         str(REPO / "scripts" / "generate-windows-tfvars.py"),
@@ -182,6 +220,14 @@ def main() -> int:
         "--output",
         str(DEFAULT_TFVARS),
         "--create-vm",
+        "--datacenter",
+        selected_datacenter,
+        "--cluster",
+        selected_cluster,
+        "--datastore",
+        selected_datastore,
+        "--network",
+        selected_network,
     ], log=log)
     run([
         str(REPO / "scripts" / "generate-windows-ansible-inventory.py"),
@@ -194,7 +240,13 @@ def main() -> int:
     plan_exit = None
     if not args.validate_only:
         run(["tofu", "fmt", "-check", "-recursive"], cwd=REPO, log=log)
-        run(["tofu", "init", "-input=false"], cwd=WINDOWS_ENV, env=env, log=log)
+        init_command = ["tofu", "init", "-input=false"]
+        state_key = args.state_key.strip()
+        if state_key:
+            state_path = Path("/opt/appserver/data/iac/state/windows-lab") / state_key / "terraform.tfstate"
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            init_command.extend(["-reconfigure", f"-backend-config=path={state_path}"])
+        run(init_command, cwd=WINDOWS_ENV, env=env, log=log)
         run(["tofu", "validate"], cwd=WINDOWS_ENV, env=env, log=log)
         plan = run(
             ["tofu", "plan", "-input=false", "-detailed-exitcode", "-no-color", "-out", str(report_dir / "windows.tfplan")],
@@ -232,6 +284,8 @@ def main() -> int:
         f"- Validate only: `{args.validate_only}`",
         f"- Post-clone baseline requested: `{args.postclone}`",
         f"- Per-host report requested: `{args.report}`",
+        f"- Selected vCenter: `{env.get('VSPHERE_SERVER', '')}`",
+        f"- State key: `{args.state_key or 'default'}`",
         f"- Plan exit code: `{plan_exit}`",
         f"- Command log: `{log}`",
         "",
