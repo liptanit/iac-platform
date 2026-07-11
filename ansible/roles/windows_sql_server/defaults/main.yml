@@ -1,0 +1,48 @@
+---
+windows_sql_enabled: true
+windows_sql_only_for_role: sql-server
+windows_sql_marker_dir: 'C:\ProgramData\IaC'
+windows_sql_marker: 'C:\ProgramData\IaC\sql-baseline.txt'
+
+# Provide a mounted path, local path, or UNC path containing setup.exe to enable install.
+# Example: D:\SQL2022 or \\fileserver\installers\SQL2022
+windows_sql_install_source: "{{ lookup('env', 'ANSIBLE_SQL_INSTALL_SOURCE') }}"
+windows_sql_setup_path: '{{ windows_sql_install_source }}\setup.exe'
+windows_sql_install_when_source_present: true
+windows_sql_fail_when_source_missing: false
+
+windows_sql_instance_name: MSSQLSERVER
+windows_sql_features: SQLENGINE
+windows_sql_product_key: "{{ lookup('env', 'ANSIBLE_SQL_PRODUCT_KEY') }}"
+windows_sql_accept_license_terms: true
+windows_sql_update_enabled: false
+windows_sql_collation: Thai_CI_AS
+windows_sql_security_mode: Windows
+windows_sql_sysadmin_accounts:
+  - 'BUILTIN\Administrators'
+windows_sql_service_account: 'NT Service\MSSQLSERVER'
+windows_sql_agent_account: 'NT Service\SQLSERVERAGENT'
+
+windows_sql_data_dir: 'D:\MSSQL\DATA'
+windows_sql_log_dir: 'E:\MSSQL\LOG'
+windows_sql_tempdb_dir: 'F:\MSSQL\TEMPDB'
+windows_sql_tempdb_log_dir: 'F:\MSSQL\TEMPDB'
+windows_sql_backup_dir: 'G:\MSSQL\BACKUP'
+windows_sql_tempdb_file_count: 4
+windows_sql_tempdb_file_size_mb: 1024
+windows_sql_tempdb_file_growth_mb: 512
+windows_sql_tempdb_log_size_mb: 1024
+windows_sql_tempdb_log_growth_mb: 512
+
+windows_sql_firewall_enabled: true
+windows_sql_port: 1433
+windows_sql_firewall_profiles:
+  - domain
+  - private
+windows_sql_firewall_remote_addresses: []
+
+windows_sql_configure_after_install: true
+windows_sql_max_memory_mb: 53248
+windows_sql_optimize_for_adhoc_workloads: true
+windows_sql_backup_compression_default: true
+windows_sql_remote_dac_enabled: false

@@ -23,6 +23,10 @@
           Select-Object -First 1 -ExpandProperty Enabled
         $winrm = Get-Service WinRM -ErrorAction SilentlyContinue
         $zabbix = Get-Service 'Zabbix Agent 2' -ErrorAction SilentlyContinue
+        $sqlService = Get-Service 'MSSQLSERVER' -ErrorAction SilentlyContinue
+        $sqlMarker = Test-Path 'C:\ProgramData\IaC\sql-baseline.txt'
+        $sqlFirewall = Get-NetFirewallRule -DisplayName 'IaC SQL Server 1433' -ErrorAction SilentlyContinue |
+          Select-Object -First 1 -ExpandProperty Enabled
         $audit = auditpol.exe /get /category:* 2>$null
         $hotfixes = Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 5 HotFixID, InstalledOn, Description
         $marker = Test-Path 'C:\ProgramData\IaC\postclone.txt'
@@ -50,6 +54,9 @@
           rdp_firewall_enabled = $rdpFirewall
           icmp_firewall_enabled = $icmpFirewall
           zabbix_agent_status = if ($zabbix) { $zabbix.Status.ToString() } else { 'Missing' }
+          sql_server_status = if ($sqlService) { $sqlService.Status.ToString() } else { 'Missing' }
+          sql_baseline_marker = $sqlMarker
+          sql_firewall_enabled = $sqlFirewall
           baseline_marker = $baselineMarker
           postclone_marker = $marker
           recent_hotfixes = $hotfixes

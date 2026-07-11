@@ -32,3 +32,17 @@ windows_update_scheduled_install_time: 3
 windows_firewall_enabled: true
 windows_enable_icmp: true
 windows_audit_policy_enabled: true
+
+# Phase 51: SQL Server role automation.
+# Applies only to inventory hosts with `role = "sql-server"`.
+# Set ANSIBLE_SQL_INSTALL_SOURCE to a path containing setup.exe before enabling
+# full SQL install. Without media, the baseline prepares directories/firewall and
+# reports SQL as Missing without failing the Windows rollout.
+windows_sql_enabled: true
+windows_sql_install_source: "{{ lookup('env', 'ANSIBLE_SQL_INSTALL_SOURCE') }}"
+windows_sql_fail_when_source_missing: false
+windows_sql_instance_name: MSSQLSERVER
+windows_sql_collation: Thai_CI_AS
+windows_sql_max_memory_mb: 53248
+windows_sql_port: 1433
+windows_sql_firewall_remote_addresses: []

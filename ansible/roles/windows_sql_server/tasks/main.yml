@@ -1,0 +1,170 @@
+---
+- name: Determine whether this host should run SQL baseline
+  ansible.builtin.set_fact:
+    windows_sql_role_matches: "{{ (iac_role | default('')) == windows_sql_only_for_role }}"
+
+- name: Skip SQL baseline for non SQL Server roles
+  ansible.builtin.debug:
+    msg:
+      host: "{{ inventory_hostname }}"
+      iac_role: "{{ iac_role | default('') }}"
+      skipped: true
+      reason: "Host role is not {{ windows_sql_only_for_role }}."
+  when: not windows_sql_role_matches | bool
+
+- name: Run SQL Server install and baseline for SQL Server role
+  when:
+    - windows_sql_enabled | bool
+    - windows_sql_role_matches | bool
+  block:
+    - name: Ensure SQL marker directory exists
+      ansible.windows.win_file:
+        path: "{{ windows_sql_marker_dir }}"
+        state: directory
+
+    - name: Capture SQL install source status
+      ansible.windows.win_stat:
+        path: "{{ windows_sql_setup_path }}"
+      register: windows_sql_setup_stat
+      when: windows_sql_install_source | length > 0
+
+    - name: Fail when SQL install source is required but missing
+      ansible.builtin.fail:
+        msg: "SQL install source is not available: {{ windows_sql_setup_path }}"
+      when:
+        - windows_sql_fail_when_source_missing | bool
+        - windows_sql_install_source | length == 0 or not (windows_sql_setup_stat.stat.exists | default(false))
+
+    - name: Check SQL Server service
+      ansible.windows.win_service_info:
+        name: "{{ 'MSSQLSERVER' if windows_sql_instance_name == 'MSSQLSERVER' else 'MSSQL$' + windows_sql_instance_name }}"
+      register: windows_sql_service_info
+
+    - name: Ensure SQL data and backup directories exist
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ windows_sql_data_dir }}"
+        - "{{ windows_sql_log_dir }}"
+        - "{{ windows_sql_tempdb_dir }}"
+        - "{{ windows_sql_tempdb_log_dir }}"
+        - "{{ windows_sql_backup_dir }}"
+
+    - name: Install SQL Server when setup source is present and service is missing
+      ansible.windows.win_command: >-
+        {{ windows_sql_setup_path }}
+        /Q
+        /ACTION=Install
+        /FEATURES={{ windows_sql_features }}
+        /INSTANCENAME={{ windows_sql_instance_name }}
+        /IACCEPTSQLSERVERLICENSETERMS={{ 'True' if windows_sql_accept_license_terms | bool else 'False' }}
+        /SQLSVCACCOUNT="{{ windows_sql_service_account }}"
+        /AGTSVCACCOUNT="{{ windows_sql_agent_account }}"
+        /SQLSYSADMINACCOUNTS="{{ windows_sql_sysadmin_accounts | join('" "') }}"
+        /SQLCOLLATION={{ windows_sql_collation }}
+        /SECURITYMODE={{ windows_sql_security_mode }}
+        /INSTALLSQLDATADIR="{{ windows_sql_data_dir }}"
+        /SQLUSERDBDIR="{{ windows_sql_data_dir }}"
+        /SQLUSERDBLOGDIR="{{ windows_sql_log_dir }}"
+        /SQLTEMPDBDIR="{{ windows_sql_tempdb_dir }}"
+        /SQLTEMPDBLOGDIR="{{ windows_sql_tempdb_log_dir }}"
+        /SQLBACKUPDIR="{{ windows_sql_backup_dir }}"
+        /SQLTEMPDBFILECOUNT={{ windows_sql_tempdb_file_count | int }}
+        /SQLTEMPDBFILESIZE={{ windows_sql_tempdb_file_size_mb | int }}
+        /SQLTEMPDBFILEGROWTH={{ windows_sql_tempdb_file_growth_mb | int }}
+        /SQLTEMPDBLOGFILESIZE={{ windows_sql_tempdb_log_size_mb | int }}
+        /SQLTEMPDBLOGFILEGROWTH={{ windows_sql_tempdb_log_growth_mb | int }}
+        /UpdateEnabled={{ 'True' if windows_sql_update_enabled | bool else 'False' }}
+        {{ '/PID=' + windows_sql_product_key if windows_sql_product_key | length > 0 else '' }}
+      register: windows_sql_install
+      changed_when: true
+      when:
+        - windows_sql_install_when_source_present | bool
+        - windows_sql_install_source | length > 0
+        - windows_sql_setup_stat.stat.exists | default(false)
+        - windows_sql_service_info.services | default([]) | length == 0
+
+    - name: Refresh SQL Server service information
+      ansible.windows.win_service_info:
+        name: "{{ 'MSSQLSERVER' if windows_sql_instance_name == 'MSSQLSERVER' else 'MSSQL$' + windows_sql_instance_name }}"
+      register: windows_sql_service_after
+
+    - name: Ensure SQL Server service is running when installed
+      ansible.windows.win_service:
+        name: "{{ 'MSSQLSERVER' if windows_sql_instance_name == 'MSSQLSERVER' else 'MSSQL$' + windows_sql_instance_name }}"
+        start_mode: auto
+        state: started
+      when: windows_sql_service_after.services | default([]) | length > 0
+
+    - name: Configure SQL firewall rule
+      community.windows.win_firewall_rule:
+        name: IaC-SQL-Server-1433
+        display_name: IaC SQL Server 1433
+        description: SQL Server access managed by IaC SQL baseline.
+        enabled: true
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: "{{ windows_sql_port | int }}"
+        remoteip: "{{ windows_sql_firewall_remote_addresses | default([]) }}"
+        profiles: "{{ windows_sql_firewall_profiles }}"
+      when: windows_sql_firewall_enabled | bool
+
+    - name: Apply SQL instance baseline when sqlcmd is available
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $sqlcmd = Get-Command sqlcmd.exe -ErrorAction SilentlyContinue
+        if (-not $sqlcmd) {
+          Write-Output 'sqlcmd.exe not found; SQL instance configuration skipped.'
+          exit 0
+        }
+        $queries = @()
+        $queries += "EXEC sp_configure 'show advanced options', 1; RECONFIGURE;"
+        $queries += "EXEC sp_configure 'max server memory (MB)', {{ windows_sql_max_memory_mb | int }}; RECONFIGURE;"
+        $queries += "EXEC sp_configure 'optimize for ad hoc workloads', {{ 1 if windows_sql_optimize_for_adhoc_workloads | bool else 0 }}; RECONFIGURE;"
+        $queries += "EXEC sp_configure 'backup compression default', {{ 1 if windows_sql_backup_compression_default | bool else 0 }}; RECONFIGURE;"
+        $queries += "EXEC sp_configure 'remote admin connections', {{ 1 if windows_sql_remote_dac_enabled | bool else 0 }}; RECONFIGURE;"
+        $query = $queries -join ' '
+        & $sqlcmd.Source -S localhost -E -Q $query
+      register: windows_sql_configure
+      changed_when: "'sqlcmd.exe not found' not in windows_sql_configure.stdout"
+      when:
+        - windows_sql_configure_after_install | bool
+        - windows_sql_service_after.services | default([]) | length > 0
+
+    - name: Collect SQL baseline status
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Continue'
+        $serviceName = '{{ 'MSSQLSERVER' if windows_sql_instance_name == 'MSSQLSERVER' else 'MSSQL$' + windows_sql_instance_name }}'
+        $service = Get-Service $serviceName -ErrorAction SilentlyContinue
+        $sqlcmd = Get-Command sqlcmd.exe -ErrorAction SilentlyContinue
+        $setupPresent = Test-Path '{{ windows_sql_setup_path }}'
+        [PSCustomObject]@{
+          host = $env:COMPUTERNAME
+          role = '{{ iac_role | default("") }}'
+          setup_present = $setupPresent
+          install_source = '{{ windows_sql_install_source }}'
+          service_name = $serviceName
+          service_status = if ($service) { $service.Status.ToString() } else { 'Missing' }
+          sqlcmd_present = [bool]$sqlcmd
+          data_dir = '{{ windows_sql_data_dir }}'
+          log_dir = '{{ windows_sql_log_dir }}'
+          tempdb_dir = '{{ windows_sql_tempdb_dir }}'
+          backup_dir = '{{ windows_sql_backup_dir }}'
+          max_memory_mb = {{ windows_sql_max_memory_mb | int }}
+          port = {{ windows_sql_port | int }}
+          disks = {{ iac_disks | default([]) | to_json }}
+        } | ConvertTo-Json -Depth 6
+      register: windows_sql_status
+      changed_when: false
+
+    - name: Write SQL baseline marker
+      ansible.windows.win_copy:
+        dest: "{{ windows_sql_marker }}"
+        content: |
+          Managed by IaC SQL Server baseline.
+          Host: {{ inventory_hostname }}
+          Role: {{ iac_role | default('') }}
+          Instance: {{ windows_sql_instance_name }}
+          Service status: {{ windows_sql_status.stdout | default('') }}
