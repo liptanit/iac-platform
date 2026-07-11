@@ -1,0 +1,22 @@
+[[artifact]]
+id = "sql-server-2022-standard-en"
+name = "SQL Server 2022 Standard English ISO"
+kind = "iso"
+source_vcenter_id = "svb-vc02"
+datastore = "Volume_Backup_DS01"
+path = "ISO/SW_DVD9_NTRL_SQL_Svr_Standard_Edtn_2022_64Bit_English_OEM_VL_X23-28393.iso"
+allowed_roles = ["sql-server"]
+sha256 = ""
+active = true
+
+# Additional media can be registered without tying it to SQL.
+# [[artifact]]
+# id = "windows-server-2025-standard-en"
+# name = "Windows Server 2025 Standard English ISO"
+# kind = "iso"
+# source_vcenter_id = "svb-vc02"
+# datastore = "Volume_Backup_DS01"
+# path = "ISO/SW_DVD9_Win_Server_STD_CORE_20253-94773.iso"
+# allowed_roles = ["api-server", "sql-server"]
+# sha256 = ""
+# active = true
