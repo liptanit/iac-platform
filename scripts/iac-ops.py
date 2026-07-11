@@ -90,11 +90,34 @@ def runtime_vcenter_id() -> str:
     return (os.environ.get("iac_vcenter_id") or os.environ.get("IAC_VCENTER_ID") or "").strip()
 
 
+def runtime_value(*names: str) -> str:
+    for name in names:
+        value = os.environ.get(name) or os.environ.get(name.lower())
+        if value and value.strip():
+            return value.strip()
+    return ""
+
+
 def scoped_inventory_path(env_name: str, platform: str, vcenter_id: str) -> Path | None:
     if not vcenter_id:
         return None
     candidate = REPO / "ops" / "inventories" / env_name / f"{platform}-{vcenter_id}.toml"
     return candidate if candidate.exists() else None
+
+
+def scoped_vcenter_from_config(env_name: str, platform: str, config_path: Path) -> str:
+    scoped_root = (REPO / "ops" / "inventories" / env_name).resolve()
+    try:
+        resolved = config_path.resolve()
+    except FileNotFoundError:
+        resolved = config_path.absolute()
+    if scoped_root not in resolved.parents:
+        return ""
+    stem = resolved.stem
+    prefix = f"{platform}-"
+    if stem.startswith(prefix):
+        return stem.removeprefix(prefix)
+    return ""
 
 
 def scoped_state_key(env_name: str, platform: str, vcenter_id: str, config_path: Path) -> str:
@@ -109,6 +132,65 @@ def scoped_state_path(platform: str, state_key: str) -> Path | None:
         return None
     state_root = "windows-lab" if platform == "windows" else "lab"
     return Path("/opt/appserver/data/iac/state") / state_root / state_key / "terraform.tfstate"
+
+
+def validate_vcenter_runtime(args: argparse.Namespace, config_path: Path) -> str:
+    runtime_id = runtime_vcenter_id()
+    config_vcenter_id = scoped_vcenter_from_config(args.env, args.platform, config_path)
+    effective_id = runtime_id or config_vcenter_id
+    if config_vcenter_id and runtime_id and runtime_id != config_vcenter_id:
+        raise SystemExit(
+            "\n".join(
+                [
+                    "Scoped inventory/runtime mismatch.",
+                    f"Inventory target: {config_vcenter_id}",
+                    f"Runtime target: {runtime_id}",
+                    "Use matching IAC_VCENTER_ID or choose the correct inventory.",
+                ]
+            )
+        )
+    if not config_vcenter_id and runtime_id:
+        scoped = scoped_inventory_path(args.env, args.platform, runtime_id)
+        if scoped and scoped.resolve() != config_path.resolve():
+            raise SystemExit(
+                "\n".join(
+                    [
+                        "Runtime vCenter points to a scoped inventory, but another config was selected.",
+                        f"Runtime target: {runtime_id}",
+                        f"Expected inventory: {scoped}",
+                        f"Selected inventory: {config_path}",
+                    ]
+                )
+            )
+    if config_vcenter_id:
+        common_required = [
+            ("IAC_VCENTER_ID", runtime_id),
+            ("IAC_VCENTER_ENDPOINT or IAC_VCENTER_HOST", runtime_value("IAC_VCENTER_ENDPOINT", "IAC_VCENTER_HOST")),
+            ("IAC_VCENTER_USERNAME", runtime_value("IAC_VCENTER_USERNAME")),
+            ("IAC_VCENTER_PASSWORD", runtime_value("IAC_VCENTER_PASSWORD")),
+            ("IAC_VCENTER_DATACENTER", runtime_value("IAC_VCENTER_DATACENTER")),
+            ("IAC_VCENTER_CLUSTER", runtime_value("IAC_VCENTER_CLUSTER")),
+            ("IAC_VCENTER_NETWORK", runtime_value("IAC_VCENTER_NETWORK")),
+        ]
+        platform_required = []
+        if args.platform == "linux":
+            platform_required.append(("IAC_VCENTER_DATASTORES", runtime_value("IAC_VCENTER_DATASTORES")))
+        elif args.platform == "windows":
+            platform_required.append(("IAC_VCENTER_DATASTORE", runtime_value("IAC_VCENTER_DATASTORE")))
+        missing = [name for name, value in common_required + platform_required if not value]
+        if missing:
+            raise SystemExit(
+                "\n".join(
+                    [
+                        "Scoped multi-vCenter inventory requires full vCenter runtime environment.",
+                        f"Inventory target: {config_vcenter_id}",
+                        "Missing:",
+                        *[f"- {name}" for name in missing],
+                        "Run through IaC Control/Semaphore, or load the vCenter runtime wrapper before using raw CLI.",
+                    ]
+                )
+            )
+    return effective_id
 
 
 def git_head() -> str:
@@ -335,6 +417,7 @@ def main() -> int:
     else:
         raise SystemExit(f"profile {args.env} has no {default_config_key}")
 
+    vcenter_id = validate_vcenter_runtime(args, config_path)
     head = git_head()
     args.vcenter_id = vcenter_id
     args.state_key = scoped_state_key(args.env, args.platform, vcenter_id, config_path)
