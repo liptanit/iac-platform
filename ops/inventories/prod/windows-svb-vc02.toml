@@ -2,7 +2,7 @@
 datacenter = "Datacenter"
 cluster = "New Cluster"
 datastore = "Volume_Backup_DS01"
-network = "SVB Server"
+network = "POS Server"
 vm_folder = "IaC-Lab"
 source_vm = "/Datacenter/vm/tpl-windows-server-2025-kps-reatime"
 guest_id = "windows9Server64Guest"
@@ -38,3 +38,30 @@ ipv4_address = "10.1.0.137"
 name = "iac-win-svb-vc02-02"
 computer_name = "IAC-WIN-VC2-02"
 ipv4_address = "10.1.0.138"
+
+[[vm]]
+name = "KPSVBP-POSIW04"
+computer_name = "KPSVBP-POSIW04"
+ipv4_address = "10.0.3.104"
+role = "api-server"
+role_profile = "API Server"
+cpu = 4
+memory_mb = 16384
+
+[[vm.disks]]
+label = "os"
+size_gb = 180
+unit_number = 0
+thin_provisioned = true
+
+[[vm.disks]]
+label = "app"
+size_gb = 120
+unit_number = 1
+thin_provisioned = true
+
+[[vm.disks]]
+label = "logs"
+size_gb = 80
+unit_number = 2
+thin_provisioned = true
