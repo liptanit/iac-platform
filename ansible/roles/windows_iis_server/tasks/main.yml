@@ -225,31 +225,37 @@
         - not windows_iis_url_rewrite_reg.exists | default(false)
 
     - name: Configure IIS HTTP firewall rule
-      community.windows.win_firewall_rule:
-        name: IaC-IIS-HTTP-80
-        display_name: IaC IIS HTTP 80
-        description: IIS HTTP access managed by IaC API Server baseline.
-        enabled: true
-        direction: in
-        action: allow
-        protocol: tcp
-        localport: 80
-        remoteip: "{{ windows_iis_firewall_remote_addresses | default([]) }}"
-        profiles: "{{ windows_iis_firewall_profiles }}"
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $name = 'IaC-IIS-HTTP-80'
+        $rule = Get-NetFirewallRule -Name $name -ErrorAction SilentlyContinue
+        if (!$rule) {
+          New-NetFirewallRule -Name $name -DisplayName 'IaC IIS HTTP 80' -Description 'IIS HTTP access managed by IaC API Server baseline.' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 80 | Out-Null
+          Write-Output 'created'
+        } else {
+          Set-NetFirewallRule -Name $name -Enabled True -Direction Inbound -Action Allow | Out-Null
+          Set-NetFirewallPortFilter -AssociatedNetFirewallRule $rule -Protocol TCP -LocalPort 80 | Out-Null
+          Write-Output 'updated'
+        }
+      register: windows_iis_http_firewall
+      changed_when: "'created' in windows_iis_http_firewall.stdout or 'updated' in windows_iis_http_firewall.stdout"
       when: windows_iis_firewall_enabled | bool
 
     - name: Configure IIS HTTPS firewall rule
-      community.windows.win_firewall_rule:
-        name: IaC-IIS-HTTPS-443
-        display_name: IaC IIS HTTPS 443
-        description: IIS HTTPS access managed by IaC API Server baseline.
-        enabled: true
-        direction: in
-        action: allow
-        protocol: tcp
-        localport: 443
-        remoteip: "{{ windows_iis_firewall_remote_addresses | default([]) }}"
-        profiles: "{{ windows_iis_firewall_profiles }}"
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $name = 'IaC-IIS-HTTPS-443'
+        $rule = Get-NetFirewallRule -Name $name -ErrorAction SilentlyContinue
+        if (!$rule) {
+          New-NetFirewallRule -Name $name -DisplayName 'IaC IIS HTTPS 443' -Description 'IIS HTTPS access managed by IaC API Server baseline.' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 443 | Out-Null
+          Write-Output 'created'
+        } else {
+          Set-NetFirewallRule -Name $name -Enabled True -Direction Inbound -Action Allow | Out-Null
+          Set-NetFirewallPortFilter -AssociatedNetFirewallRule $rule -Protocol TCP -LocalPort 443 | Out-Null
+          Write-Output 'updated'
+        }
+      register: windows_iis_https_firewall
+      changed_when: "'created' in windows_iis_https_firewall.stdout or 'updated' in windows_iis_https_firewall.stdout"
       when: windows_iis_firewall_enabled | bool
 
     - name: Restart IIS
