@@ -31,8 +31,21 @@ resource "vsphere_virtual_machine" "this" {
     adapter_type = data.vsphere_virtual_machine.source.network_interface_types[0]
   }
 
-  cdrom {
-    client_device = true
+  dynamic "cdrom" {
+    for_each = var.cdrom_iso_path == "" ? [1] : []
+
+    content {
+      client_device = true
+    }
+  }
+
+  dynamic "cdrom" {
+    for_each = var.cdrom_iso_path != "" ? [1] : []
+
+    content {
+      datastore_id = var.cdrom_iso_datastore_id
+      path         = var.cdrom_iso_path
+    }
   }
 
   dynamic "disk" {

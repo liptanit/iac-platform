@@ -132,6 +132,8 @@ def main() -> int:
             f"    guest_id                = {hcl_string(str(vm.get('guest_id', defaults.get('guest_id', 'windows9Server64Guest'))))}",
             f"    firmware                = {hcl_string(str(vm.get('firmware', defaults.get('firmware', 'efi'))))}",
             f"    efi_secure_boot_enabled = {hcl_bool(as_bool(vm.get('efi_secure_boot_enabled', defaults.get('efi_secure_boot_enabled', True)), f'{name}.efi_secure_boot_enabled'))}",
+            f"    cdrom_iso_datastore     = {hcl_string(str(vm.get('cdrom_iso_datastore', defaults.get('cdrom_iso_datastore', ''))))}",
+            f"    cdrom_iso_path          = {hcl_string(str(vm.get('cdrom_iso_path', defaults.get('cdrom_iso_path', ''))))}",
         ])
         lines.extend(disk_lines(disks))
         lines.extend([

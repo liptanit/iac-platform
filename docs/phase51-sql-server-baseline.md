@@ -23,8 +23,9 @@ The `windows_sql_server` role:
 - Creates SQL data/log/tempdb/backup directories.
 - Opens the managed SQL firewall rule `IaC SQL Server 1433` when enabled.
 - Installs SQL Server when `windows_sql_install_source` points to a path
-  containing `setup.exe`, or when a controller-cached SQL ISO is available and
-  can be copied to the guest and mounted.
+  containing `setup.exe`, when a SQL ISO is attached to the VM CD-ROM, or when
+  a controller-cached SQL ISO is available and can be copied to the guest and
+  mounted.
 - Configures max server memory, ad hoc workload optimization, backup
   compression default, and remote DAC after installation when `sqlcmd.exe` is
   available.
@@ -38,14 +39,20 @@ Preferred production flow is Windows template plus SQL ISO automation:
 2. Select role `sql-server`.
 3. Adjust CPU, RAM, and total disk size in the Create VM form if the blueprint
    defaults are not desired.
-4. Ensure the SQL ISO is cached on the Ansible controller:
+4. The Create VM flow attaches the SQL Server ISO from datastore
+   `[Volume_Backup_DS01] ISO/SW_DVD9_NTRL_SQL_Svr_Standard_Edtn_2022_64Bit_English_OEM_VL_X23-28393.ISO`
+   to the SQL VM CD-ROM.
+5. The SQL role discovers `setup.exe` on the mounted CD-ROM and installs from
+   that source.
+
+Fallback controller-cache flow:
 
 ```bash
-ANSIBLE_SQL_ISO_CONTROLLER_PATH=/opt/appserver/cache/iac/installers/sql-server-2022-standard-en.iso
+ANSIBLE_SQL_ISO_CONTROLLER_PATH=/opt/appserver/data/iac/cache/installers/sql-server-2022-standard-en.iso
 ```
 
-The role copies that ISO to `C:\Temp\SQLInstall`, mounts it, and uses the
-mounted `setup.exe` automatically.
+When this file exists, the role can copy that ISO to `C:\Temp\SQLInstall`,
+mount it, and use the mounted `setup.exe` automatically.
 
 Alternatively, set this in a root-only Ansible environment file or Semaphore
 secret before requesting install:

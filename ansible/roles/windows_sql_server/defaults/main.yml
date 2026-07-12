@@ -8,7 +8,7 @@ windows_sql_marker: 'C:\ProgramData\IaC\sql-baseline.txt'
 # Example: D:\SQL2022 or \\fileserver\installers\SQL2022
 windows_sql_install_source: "{{ lookup('env', 'ANSIBLE_SQL_INSTALL_SOURCE') }}"
 windows_sql_setup_path: '{{ windows_sql_install_source }}\setup.exe'
-windows_sql_iso_controller_path: "{{ lookup('env', 'ANSIBLE_SQL_ISO_CONTROLLER_PATH') | default('/opt/appserver/cache/iac/installers/sql-server-2022-standard-en.iso', true) }}"
+windows_sql_iso_controller_path: "{{ lookup('env', 'ANSIBLE_SQL_ISO_CONTROLLER_PATH') | default('/opt/appserver/data/iac/cache/installers/sql-server-2022-standard-en.iso', true) }}"
 windows_sql_iso_guest_dir: 'C:\Temp\SQLInstall'
 windows_sql_iso_guest_path: 'C:\Temp\SQLInstall\sql-server-2022-standard-en.iso'
 windows_sql_copy_iso_from_controller: true

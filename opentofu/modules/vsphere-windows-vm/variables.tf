@@ -8,6 +8,18 @@ variable "source_vm" { type = string }
 variable "cpu" { type = number }
 variable "memory_mb" { type = number }
 
+variable "cdrom_iso_datastore_id" {
+  description = "Optional datastore ID containing an ISO to attach to the VM CD-ROM. Empty uses a client-device CD-ROM."
+  type        = string
+  default     = ""
+}
+
+variable "cdrom_iso_path" {
+  description = "Optional datastore-relative ISO path to attach to the VM CD-ROM."
+  type        = string
+  default     = ""
+}
+
 variable "guest_id" {
   description = "Optional guest OS identifier override for the managed clone. Empty inherits from the source template."
   type        = string

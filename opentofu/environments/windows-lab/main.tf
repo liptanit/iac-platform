@@ -17,10 +17,19 @@ locals {
     [var.network],
     [for vm in values(var.windows_vms) : vm.network if try(vm.network, "") != ""]
   )))
+  cdrom_iso_datastore_names = toset(distinct([
+    for vm in values(var.windows_vms) : vm.cdrom_iso_datastore if try(vm.cdrom_iso_datastore, "") != ""
+  ]))
 }
 
 data "vsphere_network" "selected" {
   for_each      = local.network_names
+  name          = each.key
+  datacenter_id = data.vsphere_datacenter.selected.id
+}
+
+data "vsphere_datastore" "cdrom_iso" {
+  for_each      = local.cdrom_iso_datastore_names
   name          = each.key
   datacenter_id = data.vsphere_datacenter.selected.id
 }
@@ -38,6 +47,8 @@ module "windows_vm" {
   source_vm               = var.source_vm
   cpu                     = each.value.cpu
   memory_mb               = each.value.memory_mb
+  cdrom_iso_datastore_id  = try(each.value.cdrom_iso_datastore, "") != "" ? data.vsphere_datastore.cdrom_iso[each.value.cdrom_iso_datastore].id : ""
+  cdrom_iso_path          = try(each.value.cdrom_iso_path, "")
   guest_id                = each.value.guest_id
   disks                   = each.value.disks
   customize_windows       = each.value.customize_windows

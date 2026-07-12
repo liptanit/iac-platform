@@ -27,6 +27,43 @@
         windows_sql_effective_install_source: "{{ windows_sql_install_source }}"
         windows_sql_effective_setup_path: "{{ windows_sql_setup_path }}"
 
+    - name: Discover SQL setup.exe on mounted CD-ROM
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Continue'
+        $candidates = Get-CimInstance Win32_LogicalDisk -Filter "DriveType=5" |
+          ForEach-Object {
+            $root = $_.DeviceID + [char]92
+            $setup = Join-Path $root 'setup.exe'
+            if (Test-Path $setup) {
+              [PSCustomObject]@{
+                install_source = $root
+                setup_path = $setup
+                setup_present = $true
+              }
+            }
+          } |
+          Select-Object -First 1
+        if (-not $candidates) {
+          [PSCustomObject]@{
+            install_source = ''
+            setup_path = ''
+            setup_present = $false
+          }
+        } else {
+          $candidates
+        } | ConvertTo-Json -Compress
+      register: windows_sql_cdrom_source
+      changed_when: false
+      when: windows_sql_install_source | length == 0
+
+    - name: Use mounted SQL CD-ROM as install source
+      ansible.builtin.set_fact:
+        windows_sql_effective_install_source: "{{ (windows_sql_cdrom_source.stdout | from_json).install_source }}"
+        windows_sql_effective_setup_path: "{{ (windows_sql_cdrom_source.stdout | from_json).setup_path }}"
+      when:
+        - windows_sql_cdrom_source.stdout | default('') | length > 0
+        - (windows_sql_cdrom_source.stdout | from_json).setup_present | default(false)
+
     - name: Check controller SQL ISO cache
       ansible.builtin.stat:
         path: "{{ windows_sql_iso_controller_path }}"
@@ -34,7 +71,7 @@
       delegate_to: localhost
       when:
         - windows_sql_mount_iso_when_source_missing | bool
-        - windows_sql_install_source | length == 0
+        - windows_sql_effective_install_source | length == 0
 
     - name: Ensure guest SQL ISO directory exists
       ansible.windows.win_file:
@@ -43,7 +80,7 @@
       when:
         - windows_sql_mount_iso_when_source_missing | bool
         - windows_sql_copy_iso_from_controller | bool
-        - windows_sql_install_source | length == 0
+        - windows_sql_effective_install_source | length == 0
         - windows_sql_iso_controller_stat.stat.exists | default(false)
 
     - name: Copy SQL ISO from controller cache to guest
@@ -53,7 +90,7 @@
       when:
         - windows_sql_mount_iso_when_source_missing | bool
         - windows_sql_copy_iso_from_controller | bool
-        - windows_sql_install_source | length == 0
+        - windows_sql_effective_install_source | length == 0
         - windows_sql_iso_controller_stat.stat.exists | default(false)
 
     - name: Mount SQL ISO and resolve setup.exe
@@ -80,7 +117,7 @@
       changed_when: false
       when:
         - windows_sql_mount_iso_when_source_missing | bool
-        - windows_sql_install_source | length == 0
+        - windows_sql_effective_install_source | length == 0
         - windows_sql_iso_controller_stat.stat.exists | default(false)
 
     - name: Use mounted SQL ISO as install source
