@@ -28,16 +28,21 @@
         $desired = ConvertFrom-Json @'
         {{ windows_iis_features | to_json }}
         '@
+        $skipWithoutSource = ConvertFrom-Json @'
+        {{ windows_iis_features_skip_without_source | default([]) | to_json }}
+        '@
         $features = @(Get-WindowsFeature)
         $availableNames = @($features | Select-Object -ExpandProperty Name)
         $removedNames = @($features | Where-Object { $_.InstallState -eq 'Removed' } | Select-Object -ExpandProperty Name)
-        $valid = @($desired | Where-Object { ($availableNames -contains $_) -and ($removedNames -notcontains $_) })
+        $valid = @($desired | Where-Object { ($availableNames -contains $_) -and ($removedNames -notcontains $_) -and ($skipWithoutSource -notcontains $_) })
         $missing = @($desired | Where-Object { $availableNames -notcontains $_ })
         $removed = @($desired | Where-Object { $removedNames -contains $_ })
+        $skippedWithoutSource = @($desired | Where-Object { $skipWithoutSource -contains $_ })
         [pscustomobject]@{
           valid = $valid
           missing = $missing
           removed = $removed
+          skipped_without_source = $skippedWithoutSource
         } | ConvertTo-Json -Compress
       register: windows_iis_feature_resolution
       changed_when: false
@@ -47,6 +52,7 @@
         windows_iis_resolved_features: "{{ (windows_iis_feature_resolution.stdout | from_json).valid | default([]) }}"
         windows_iis_missing_features: "{{ (windows_iis_feature_resolution.stdout | from_json).missing | default([]) }}"
         windows_iis_removed_features: "{{ (windows_iis_feature_resolution.stdout | from_json).removed | default([]) }}"
+        windows_iis_skipped_without_source_features: "{{ (windows_iis_feature_resolution.stdout | from_json).skipped_without_source | default([]) }}"
 
     - name: Report IIS/API Windows features unavailable on this OS
       ansible.builtin.debug:
@@ -62,6 +68,14 @@
           removed_features: "{{ windows_iis_removed_features }}"
           note: "These features are marked Removed on this OS and require an external Windows source/SxS path."
       when: windows_iis_removed_features | length > 0
+
+    - name: Report IIS/API Windows features skipped without external source
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          skipped_without_source_features: "{{ windows_iis_skipped_without_source_features }}"
+          note: "These legacy features are skipped by policy unless a Windows source/SxS path is provided."
+      when: windows_iis_skipped_without_source_features | length > 0
 
     - name: Install IIS/API Windows feature set
       ansible.windows.win_feature:

@@ -71,6 +71,15 @@ windows_iis_features:
   - NET-WCF-TCP-PortSharing45
   - SMTP-Server
 
+# Windows Server 2025 may mark legacy .NET 3.x payloads as source-required.
+# Keep these out of the default install path unless a SxS/source workflow is added.
+windows_iis_features_skip_without_source:
+  - Web-Net-Ext
+  - Web-Asp-Net
+  - NET-Framework-Core
+  - NET-HTTP-Activation
+  - NET-Non-HTTP-Activ
+
 windows_iis_enable_management_service: true
 windows_iis_register_aspnet: true
 windows_iis_enable_32bit_default_app_pool: true
