@@ -2,7 +2,7 @@
 datacenter = "UTP-Datacenter"
 cluster = "UTP Cluster"
 datastore = "MSA2050-Datastore"
-network = "POS Server"
+network = "VM Network"
 vm_folder = "IaC-Lab"
 source_vm = "/UTP-Datacenter/vm/tpl-windows-server-2025-kps-reatime"
 guest_id = "windows9Server64Guest"
