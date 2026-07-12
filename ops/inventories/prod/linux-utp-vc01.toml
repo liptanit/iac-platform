@@ -9,6 +9,7 @@ prefix = 24
 dns_servers = ["10.1.0.9", "10.1.0.254"]
 interface_match = "en*"
 template = "tpl-ubuntu-24.04-server"
+vm_folder = "IaC-Lab"
 cpu = 2
 memory_mb = 4096
 disk_gb = 40

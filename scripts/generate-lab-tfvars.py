@@ -53,6 +53,7 @@ def main() -> int:
         public_key = Path(defaults["ssh_public_key_file"]).read_text(encoding="utf-8").strip()
     else:
         raise SystemExit("defaults must set ssh_public_key or ssh_public_key_file")
+    vm_folder = str(defaults.get("vm_folder", args.vm_folder)).strip() or args.vm_folder
 
     lines = [
         f"datacenter       = {hcl_string(args.datacenter)}",
@@ -60,7 +61,7 @@ def main() -> int:
         f"datastore        = {hcl_string(args.datastore)}",
         f"network          = {hcl_string(args.network)}",
         f"selected_vcenter = {hcl_string(args.selected_vcenter)}",
-        f"vm_folder        = {hcl_string(args.vm_folder)}",
+        f"vm_folder        = {hcl_string(vm_folder)}",
         "",
         f"create_vm = {str(args.create_vm).lower()}",
         "",
