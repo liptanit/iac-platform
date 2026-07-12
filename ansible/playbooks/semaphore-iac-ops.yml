@@ -60,7 +60,9 @@
         iac_vcenter_password: "{{ iac_vcenter_password | default('') }}"
         iac_vcenter_datacenter: "{{ iac_vcenter_datacenter | default('') }}"
         iac_vcenter_cluster: "{{ iac_vcenter_cluster | default('') }}"
+        iac_vcenter_datastore: "{{ iac_vcenter_datastore | default('') }}"
         iac_vcenter_datastores: "{{ iac_vcenter_datastores | default('') }}"
+        iac_vcenter_network: "{{ iac_vcenter_network | default('') }}"
         iac_vcenter_networks: "{{ iac_vcenter_networks | default('') }}"
         iac_runner_tag: "{{ iac_runner_tag | default('') }}"
       register: iac_operation
