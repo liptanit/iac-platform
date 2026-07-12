@@ -44,16 +44,20 @@ windows_iis_features_skip_without_source:
 windows_iis_enable_management_service: true
 windows_iis_register_aspnet: true
 windows_iis_enable_32bit_default_app_pool: true
-windows_iis_install_url_rewrite: true
+# The public IIS URL Rewrite download link can be unavailable; enable this
+# only when a working URL or controller-side cached MSI is available.
+windows_iis_install_url_rewrite: false
 windows_iis_url_rewrite_url: "https://download.microsoft.com/download/D/D/9/DD939EF9-88B1-4D5A-9BE3-4125FE9C6D2C/rewrite_amd64_en-US.msi"
 windows_iis_temp_dir: 'C:\Temp'
 windows_iis_url_rewrite_msi: 'C:\Temp\rewrite_amd64_en-US.msi'
+windows_iis_url_rewrite_controller_installer: '/opt/appserver/cache/iac/installers/rewrite_amd64_en-US.msi'
 windows_iis_restart_after_install: true
 
 windows_iis_install_dotnet_hosting_bundle: true
 windows_iis_dotnet_major_version: "8.0"
 windows_iis_dotnet_hosting_bundle_url: "https://aka.ms/dotnet/8.0/dotnet-hosting-win.exe"
 windows_iis_dotnet_hosting_bundle_installer: 'C:\Temp\IISInstall\dotnet-hosting-8.0-win.exe'
+windows_iis_dotnet_hosting_bundle_controller_installer: '/opt/appserver/cache/iac/installers/dotnet-hosting-8.0-win.exe'
 windows_iis_dotnet_module_path: 'C:\Program Files\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll'
 windows_iis_app_path: 'C:\www\AirportServices'
 windows_iis_configure_app_permissions: true

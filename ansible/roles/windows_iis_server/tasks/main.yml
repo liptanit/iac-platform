@@ -137,6 +137,24 @@
         - windows_iis_install_dotnet_hosting_bundle | bool
         - not windows_iis_dotnet_module_stat.stat.exists | default(false)
 
+    - name: Check controller cache for ASP.NET Core Hosting Bundle
+      ansible.builtin.stat:
+        path: "{{ windows_iis_dotnet_hosting_bundle_controller_installer }}"
+      register: windows_iis_dotnet_hosting_bundle_controller_stat
+      delegate_to: localhost
+      when:
+        - windows_iis_install_dotnet_hosting_bundle | bool
+        - not windows_iis_dotnet_module_stat.stat.exists | default(false)
+
+    - name: Copy cached ASP.NET Core Hosting Bundle from controller
+      ansible.windows.win_copy:
+        src: "{{ windows_iis_dotnet_hosting_bundle_controller_installer }}"
+        dest: "{{ windows_iis_dotnet_hosting_bundle_installer }}"
+      when:
+        - windows_iis_install_dotnet_hosting_bundle | bool
+        - not windows_iis_dotnet_module_stat.stat.exists | default(false)
+        - windows_iis_dotnet_hosting_bundle_controller_stat.stat.exists | default(false)
+
     - name: Download ASP.NET Core Hosting Bundle
       ansible.windows.win_get_url:
         url: "{{ windows_iis_dotnet_hosting_bundle_url }}"
@@ -144,6 +162,7 @@
       when:
         - windows_iis_install_dotnet_hosting_bundle | bool
         - not windows_iis_dotnet_module_stat.stat.exists | default(false)
+        - not windows_iis_dotnet_hosting_bundle_controller_stat.stat.exists | default(false)
 
     - name: Install ASP.NET Core Hosting Bundle
       ansible.windows.win_package:
@@ -207,6 +226,24 @@
         - windows_iis_install_url_rewrite | bool
         - not windows_iis_url_rewrite_reg.exists | default(false)
 
+    - name: Check controller cache for IIS URL Rewrite Module installer
+      ansible.builtin.stat:
+        path: "{{ windows_iis_url_rewrite_controller_installer }}"
+      register: windows_iis_url_rewrite_controller_stat
+      delegate_to: localhost
+      when:
+        - windows_iis_install_url_rewrite | bool
+        - not windows_iis_url_rewrite_reg.exists | default(false)
+
+    - name: Copy cached IIS URL Rewrite Module installer from controller
+      ansible.windows.win_copy:
+        src: "{{ windows_iis_url_rewrite_controller_installer }}"
+        dest: "{{ windows_iis_url_rewrite_msi }}"
+      when:
+        - windows_iis_install_url_rewrite | bool
+        - not windows_iis_url_rewrite_reg.exists | default(false)
+        - windows_iis_url_rewrite_controller_stat.stat.exists | default(false)
+
     - name: Download IIS URL Rewrite Module installer
       ansible.windows.win_get_url:
         url: "{{ windows_iis_url_rewrite_url }}"
@@ -214,6 +251,7 @@
       when:
         - windows_iis_install_url_rewrite | bool
         - not windows_iis_url_rewrite_reg.exists | default(false)
+        - not windows_iis_url_rewrite_controller_stat.stat.exists | default(false)
 
     - name: Install IIS URL Rewrite Module
       ansible.windows.win_package:
