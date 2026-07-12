@@ -70,4 +70,12 @@ resource "vsphere_virtual_machine" "this" {
       }
     }
   }
+
+  lifecycle {
+    # VMware guest customization is a first-boot operation. Later inventory
+    # corrections should be applied in-guest, not by replacing the VM.
+    ignore_changes = [
+      clone[0].customize[0],
+    ]
+  }
 }
