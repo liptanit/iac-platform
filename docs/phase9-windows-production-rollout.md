@@ -96,6 +96,8 @@ Supported policy areas:
 - Optional domain join with credentials supplied from environment variables.
 - Optional automation/local admin account with password supplied from
   `ANSIBLE_AUTOMATION_ADMIN_PASSWORD`.
+- Optional Windows shell repair for Windows Server 2025 console/remote black
+  desktop cases caused by ShellHost/Explorer/ControlCenter crashes.
 - Optional Zabbix Agent 2 install/start.
 - Optional EDR install/start through a configured command and service name.
 - Windows Update policy, timezone, firewall, ICMP, and audit policy.
@@ -109,6 +111,9 @@ The current production policy approved on 2026-07-09:
 
 - Enables RDP.
 - Does not join a domain.
+- Runs the Windows shell repair hook before role-specific IIS/SQL automation to
+  avoid the known Windows Server 2025 ShellHost/ControlCenter black desktop
+  condition.
 - Installs Zabbix Agent 2 through the SYSAP bootstrap script:
   `http://10.1.0.15/agent/windows/Install-ZabbixWindowsAgent.ps1`.
 - Points Zabbix `Server` and `ServerActive` to `10.1.0.15`.

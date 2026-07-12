@@ -99,6 +99,10 @@
     - windows_automation_admin_name | length > 0
     - windows_automation_admin_password | length > 0
 
+- name: Run Windows shell repair when enabled
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../tasks/windows-shell-repair.yml"
+  when: windows_shell_repair_enabled | bool
+
 - name: Check Zabbix agent service before install
   ansible.windows.win_service_info:
     name: "{{ windows_zabbix_agent_service_name }}"

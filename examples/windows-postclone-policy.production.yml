@@ -18,6 +18,9 @@ windows_zabbix_host_metadata: "Windows"
 windows_zabbix_force_reinstall: false
 windows_zabbix_agent_service_name: "Zabbix Agent 2"
 
+windows_shell_repair_enabled: true
+windows_shell_repair_reboot: true
+
 # Trend AI Deep Security / Vision One Endpoint Security can be enabled after
 # the approved installer command, token, and service name are supplied.
 windows_edr_enabled: false

@@ -30,6 +30,9 @@ windows_update_scheduled_install_time: 3
 windows_firewall_enabled: true
 windows_enable_icmp: true
 
+windows_shell_repair_enabled: false
+windows_shell_repair_reboot: true
+
 windows_audit_policy_enabled: true
 windows_audit_subcategories:
   - name: "Logon"
