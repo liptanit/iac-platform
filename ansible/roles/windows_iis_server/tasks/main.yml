@@ -22,12 +22,41 @@
         path: "{{ windows_iis_marker_dir }}"
         state: directory
 
+    - name: Resolve IIS/API Windows features available on this OS
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $desired = ConvertFrom-Json @'
+        {{ windows_iis_features | to_json }}
+        '@
+        $availableNames = @(Get-WindowsFeature | Select-Object -ExpandProperty Name)
+        $valid = @($desired | Where-Object { $availableNames -contains $_ })
+        $missing = @($desired | Where-Object { $availableNames -notcontains $_ })
+        [pscustomobject]@{
+          valid = $valid
+          missing = $missing
+        } | ConvertTo-Json -Compress
+      register: windows_iis_feature_resolution
+      changed_when: false
+
+    - name: Store IIS/API Windows feature resolution
+      ansible.builtin.set_fact:
+        windows_iis_resolved_features: "{{ (windows_iis_feature_resolution.stdout | from_json).valid | default([]) }}"
+        windows_iis_missing_features: "{{ (windows_iis_feature_resolution.stdout | from_json).missing | default([]) }}"
+
+    - name: Report IIS/API Windows features unavailable on this OS
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          missing_features: "{{ windows_iis_missing_features }}"
+      when: windows_iis_missing_features | length > 0
+
     - name: Install IIS/API Windows feature set
       ansible.windows.win_feature:
-        name: "{{ windows_iis_features }}"
+        name: "{{ windows_iis_resolved_features }}"
         include_management_tools: true
         state: present
       register: windows_iis_feature_result
+      when: windows_iis_resolved_features | length > 0
 
     - name: Enable IIS Management Service
       ansible.windows.win_service:
