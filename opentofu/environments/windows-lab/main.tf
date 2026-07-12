@@ -12,8 +12,16 @@ data "vsphere_datastore" "selected" {
   datacenter_id = data.vsphere_datacenter.selected.id
 }
 
+locals {
+  network_names = toset(distinct(concat(
+    [var.network],
+    [for vm in values(var.windows_vms) : vm.network if try(vm.network, "") != ""]
+  )))
+}
+
 data "vsphere_network" "selected" {
-  name          = var.network
+  for_each      = local.network_names
+  name          = each.key
   datacenter_id = data.vsphere_datacenter.selected.id
 }
 
@@ -24,7 +32,7 @@ module "windows_vm" {
   datacenter_id           = data.vsphere_datacenter.selected.id
   datastore_id            = data.vsphere_datastore.selected.id
   resource_pool_id        = data.vsphere_compute_cluster.selected.resource_pool_id
-  network_id              = data.vsphere_network.selected.id
+  network_id              = data.vsphere_network.selected[try(each.value.network, "") != "" ? each.value.network : var.network].id
   vm_folder               = var.vm_folder
   vm_name                 = each.key
   source_vm               = var.source_vm

@@ -2,7 +2,7 @@
 datacenter = "Datacenter"
 cluster = "New Cluster"
 datastore = "Volume_Backup_DS01"
-network = "POS Server"
+network = "SVB Server"
 vm_folder = "IaC-Lab"
 source_vm = "/Datacenter/vm/tpl-windows-server-2025-kps-reatime"
 guest_id = "windows9Server64Guest"
@@ -45,6 +45,7 @@ computer_name = "KPSVBP-POSIW04"
 ipv4_address = "10.0.3.104"
 role = "api-server"
 role_profile = "API Server"
+network = "POS Server"
 cpu = 4
 memory_mb = 16384
 
@@ -56,7 +57,7 @@ thin_provisioned = true
 
 [[vm.disks]]
 label = "app"
-size_gb = 120
+size_gb = 200
 unit_number = 1
 thin_provisioned = true
 

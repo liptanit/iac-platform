@@ -48,6 +48,7 @@ variable "windows_vms" {
   type = map(object({
     cpu                     = number
     memory_mb               = number
+    network                 = optional(string, "")
     guest_id                = optional(string, "")
     disks                   = list(object({ label = string, size_gb = number, unit_number = number, thin_provisioned = bool }))
     customize_windows       = optional(bool, false)

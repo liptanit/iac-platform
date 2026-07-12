@@ -128,6 +128,7 @@ def main() -> int:
             f"  {hcl_key(name)} = {{",
             f"    cpu                     = {as_int(vm.get('cpu', defaults.get('cpu', 4)), f'{name}.cpu')}",
             f"    memory_mb               = {as_int(vm.get('memory_mb', defaults.get('memory_mb', 32768)), f'{name}.memory_mb')}",
+            f"    network                 = {hcl_string(str(vm.get('network', defaults.get('network', args.network))))}",
             f"    guest_id                = {hcl_string(str(vm.get('guest_id', defaults.get('guest_id', 'windows9Server64Guest'))))}",
             f"    firmware                = {hcl_string(str(vm.get('firmware', defaults.get('firmware', 'efi'))))}",
             f"    efi_secure_boot_enabled = {hcl_bool(as_bool(vm.get('efi_secure_boot_enabled', defaults.get('efi_secure_boot_enabled', True)), f'{name}.efi_secure_boot_enabled'))}",
