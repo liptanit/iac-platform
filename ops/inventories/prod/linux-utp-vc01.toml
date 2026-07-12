@@ -1,0 +1,37 @@
+[defaults]
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIA+W2ocEhkGCkUoOyethivfABUp4Cl76oyA5SW0li21 iac-template@sysap"
+username = "iacadmin"
+groups = ["adm", "sudo"]
+shell = "/bin/bash"
+sudo = "ALL=(ALL) NOPASSWD:ALL"
+gateway = "10.85.91.1"
+prefix = 24
+dns_servers = ["10.1.0.9", "10.1.0.254"]
+interface_match = "en*"
+template = "tpl-ubuntu-24.04-server"
+cpu = 2
+memory_mb = 4096
+disk_gb = 40
+runcmd = [
+  "systemctl enable --now open-vm-tools || true",
+]
+
+[[vm]]
+name = "iac-linux-utp-vc01-01"
+ipv4 = "10.85.91.131"
+instance_id = "iac-linux-utp-vc01-01-nocloud"
+datacenter = "UTP-Datacenter"
+cluster = "UTP Cluster"
+datastore = "MSA2050-Datastore"
+network = "POS Server"
+seed_iso_path = "iac/seed/iac-linux-utp-vc01-01-seed.iso"
+
+[[vm]]
+name = "iac-linux-utp-vc01-02"
+ipv4 = "10.85.91.132"
+instance_id = "iac-linux-utp-vc01-02-nocloud"
+datacenter = "UTP-Datacenter"
+cluster = "UTP Cluster"
+datastore = "MSA2050-Datastore"
+network = "POS Server"
+seed_iso_path = "iac/seed/iac-linux-utp-vc01-02-seed.iso"
