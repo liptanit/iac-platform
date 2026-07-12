@@ -50,7 +50,7 @@ memory_mb = 16384
 
 [[vm.disks]]
 label = "os"
-size_gb = 180
+size_gb = 300
 unit_number = 0
 thin_provisioned = true
 
