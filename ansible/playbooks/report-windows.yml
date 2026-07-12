@@ -31,6 +31,10 @@
         $iisFirewallHttps = Get-NetFirewallRule -DisplayName 'IaC IIS HTTPS 443' -ErrorAction SilentlyContinue |
           Select-Object -First 1 -ExpandProperty Enabled
         $urlRewrite = Test-Path 'HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite'
+        $aspNetCoreModule = Test-Path "$env:ProgramFiles\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll"
+        $dotnet = Get-Command dotnet.exe -ErrorAction SilentlyContinue
+        $dotnetRuntimes = if ($dotnet) { & $dotnet.Source --list-runtimes } else { @() }
+        $apiAppPath = 'C:\www\AirportServices'
         $sqlService = Get-Service 'MSSQLSERVER' -ErrorAction SilentlyContinue
         $sqlMarker = Test-Path 'C:\ProgramData\IaC\sql-baseline.txt'
         $sqlFirewall = Get-NetFirewallRule -DisplayName 'IaC SQL Server 1433' -ErrorAction SilentlyContinue |
@@ -68,6 +72,11 @@
           iis_http_firewall_enabled = $iisFirewallHttp
           iis_https_firewall_enabled = $iisFirewallHttps
           iis_url_rewrite_present = $urlRewrite
+          iis_aspnetcore_module_v2_present = $aspNetCoreModule
+          dotnet_present = [bool]$dotnet
+          dotnet_runtimes = $dotnetRuntimes
+          api_app_path_present = Test-Path $apiAppPath
+          api_app_logs_path_present = Test-Path (Join-Path $apiAppPath 'logs')
           sql_server_status = if ($sqlService) { $sqlService.Status.ToString() } else { 'Missing' }
           sql_baseline_marker = $sqlMarker
           sql_firewall_enabled = $sqlFirewall

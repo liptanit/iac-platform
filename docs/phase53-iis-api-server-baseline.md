@@ -4,11 +4,14 @@ Windows inventory hosts with `role = "api-server"` now run an IIS/API Server
 baseline during `postclone-windows.yml`. The role follows the PowerShell
 baseline supplied by Payong on 2026-07-12.
 
-The baseline installs the full IIS feature set for ASP.NET, Classic ASP, CGI,
-WebSockets, FTP, SMTP, IIS management tools, .NET Framework/WCF activation, and
-URL Rewrite. It enables the IIS Management Service, registers ASP.NET 4.x when
-the legacy tool is present, enables 32-bit applications on DefaultAppPool, opens
-HTTP/HTTPS firewall rules, restarts IIS, and writes an IaC marker.
+The baseline installs the IIS feature set for ASP.NET, Classic ASP, CGI,
+WebSockets, FTP, SMTP, IIS management tools, .NET Framework/WCF activation, URL
+Rewrite, and the ASP.NET Core 8 Hosting Bundle. It enables the IIS Management
+Service, registers ASP.NET 4.x when the legacy tool is present, enables 32-bit
+applications on DefaultAppPool, prepares `C:\www\AirportServices\logs` when the
+application folder exists, grants `IIS_IUSRS` read/execute and logs modify
+permissions, opens HTTP/HTTPS firewall rules, restarts IIS, verifies
+AspNetCoreModuleV2, and writes an IaC marker.
 
 The role is intentionally scoped:
 

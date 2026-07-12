@@ -80,6 +80,14 @@ windows_iis_temp_dir: 'C:\Temp'
 windows_iis_url_rewrite_msi: 'C:\Temp\rewrite_amd64_en-US.msi'
 windows_iis_restart_after_install: true
 
+windows_iis_install_dotnet_hosting_bundle: true
+windows_iis_dotnet_major_version: "8.0"
+windows_iis_dotnet_hosting_bundle_url: "https://aka.ms/dotnet/8.0/dotnet-hosting-win.exe"
+windows_iis_dotnet_hosting_bundle_installer: 'C:\Temp\IISInstall\dotnet-hosting-8.0-win.exe'
+windows_iis_dotnet_module_path: 'C:\Program Files\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll'
+windows_iis_app_path: 'C:\www\AirportServices'
+windows_iis_configure_app_permissions: true
+
 windows_iis_firewall_enabled: true
 windows_iis_firewall_profiles:
   - domain

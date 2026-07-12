@@ -62,6 +62,81 @@
       changed_when: "'enable32BitAppOnWin64 = true' in windows_iis_default_app_pool.stdout"
       when: windows_iis_enable_32bit_default_app_pool | bool
 
+    - name: Stop IIS before ASP.NET Core Hosting Bundle install
+      ansible.windows.win_command: iisreset /stop
+      changed_when: true
+      when: windows_iis_install_dotnet_hosting_bundle | bool
+
+    - name: Check ASP.NET Core Module V2
+      ansible.windows.win_stat:
+        path: "{{ windows_iis_dotnet_module_path }}"
+      register: windows_iis_dotnet_module_stat
+      when: windows_iis_install_dotnet_hosting_bundle | bool
+
+    - name: Ensure ASP.NET Core Hosting Bundle installer directory exists
+      ansible.windows.win_file:
+        path: '{{ windows_iis_temp_dir }}\IISInstall'
+        state: directory
+      when:
+        - windows_iis_install_dotnet_hosting_bundle | bool
+        - not windows_iis_dotnet_module_stat.stat.exists | default(false)
+
+    - name: Download ASP.NET Core Hosting Bundle
+      ansible.windows.win_get_url:
+        url: "{{ windows_iis_dotnet_hosting_bundle_url }}"
+        dest: "{{ windows_iis_dotnet_hosting_bundle_installer }}"
+      when:
+        - windows_iis_install_dotnet_hosting_bundle | bool
+        - not windows_iis_dotnet_module_stat.stat.exists | default(false)
+
+    - name: Install ASP.NET Core Hosting Bundle
+      ansible.windows.win_package:
+        path: "{{ windows_iis_dotnet_hosting_bundle_installer }}"
+        arguments: /install /quiet /norestart
+        state: present
+        expected_return_code:
+          - 0
+          - 3010
+      register: windows_iis_dotnet_hosting_bundle
+      when:
+        - windows_iis_install_dotnet_hosting_bundle | bool
+        - not windows_iis_dotnet_module_stat.stat.exists | default(false)
+
+    - name: Ensure API application logs directory exists when app path exists
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $appPath = '{{ windows_iis_app_path }}'
+        if (Test-Path $appPath) {
+          $logPath = Join-Path $appPath 'logs'
+          if (!(Test-Path $logPath)) {
+            New-Item -ItemType Directory -Path $logPath -Force | Out-Null
+            Write-Output "created:$logPath"
+          } else {
+            Write-Output "exists:$logPath"
+          }
+        } else {
+          Write-Output "missing:$appPath"
+        }
+      register: windows_iis_app_logs
+      changed_when: "'created:' in windows_iis_app_logs.stdout"
+      when: windows_iis_configure_app_permissions | bool
+
+    - name: Apply IIS_IUSRS permissions to API app path when present
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $appPath = '{{ windows_iis_app_path }}'
+        if (Test-Path $appPath) {
+          $logPath = Join-Path $appPath 'logs'
+          icacls $appPath /grant 'IIS_IUSRS:(OI)(CI)RX' /T
+          icacls $logPath /grant 'IIS_IUSRS:(OI)(CI)M' /T
+          Write-Output 'permissions_applied'
+        } else {
+          Write-Output 'app_path_missing'
+        }
+      register: windows_iis_app_permissions
+      changed_when: "'permissions_applied' in windows_iis_app_permissions.stdout"
+      when: windows_iis_configure_app_permissions | bool
+
     - name: Check IIS URL Rewrite module
       ansible.windows.win_reg_stat:
         path: HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite
@@ -132,6 +207,11 @@
         $w3svc = Get-Service W3SVC -ErrorAction SilentlyContinue
         $wmsvc = Get-Service WMSVC -ErrorAction SilentlyContinue
         $urlRewrite = Test-Path 'HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite'
+        $aspNetCoreModule = Test-Path '{{ windows_iis_dotnet_module_path }}'
+        $dotnet = Get-Command dotnet.exe -ErrorAction SilentlyContinue
+        $dotnetRuntimes = if ($dotnet) { & $dotnet.Source --list-runtimes } else { @() }
+        $appPath = '{{ windows_iis_app_path }}'
+        $logPath = Join-Path $appPath 'logs'
         $installed = Get-WindowsFeature | Where-Object {
           $_.Name -like 'Web-*' -and $_.InstallState -eq 'Installed'
         } | Select-Object Name, DisplayName, InstallState
@@ -141,6 +221,12 @@
           w3svc_status = if ($w3svc) { $w3svc.Status.ToString() } else { 'Missing' }
           wmsvc_status = if ($wmsvc) { $wmsvc.Status.ToString() } else { 'Missing' }
           url_rewrite_present = $urlRewrite
+          aspnetcore_module_v2_present = $aspNetCoreModule
+          dotnet_present = [bool]$dotnet
+          dotnet_runtimes = $dotnetRuntimes
+          app_path = $appPath
+          app_path_present = Test-Path $appPath
+          app_logs_path_present = Test-Path $logPath
           enable_32bit_default_app_pool = {{ '$true' if windows_iis_enable_32bit_default_app_pool | bool else '$false' }}
           feature_count = @($installed).Count
           features = $installed
