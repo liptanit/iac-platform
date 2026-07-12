@@ -4,6 +4,7 @@
   gather_facts: true
   roles:
     - windows_postclone
+    - windows_iis_server
     - windows_sql_server
 
   post_tasks:
@@ -19,4 +20,5 @@
           zabbix_enabled: "{{ windows_zabbix_agent_enabled | bool }}"
           edr_enabled: "{{ windows_edr_enabled | bool }}"
           iac_role: "{{ iac_role | default('') }}"
+          iis_baseline_enabled: "{{ windows_iis_enabled | default(false) | bool }}"
           sql_baseline_enabled: "{{ windows_sql_enabled | default(false) | bool }}"

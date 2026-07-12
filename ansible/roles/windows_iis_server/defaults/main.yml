@@ -1,0 +1,87 @@
+---
+windows_iis_enabled: true
+windows_iis_only_for_role: api-server
+windows_iis_marker_dir: 'C:\ProgramData\IaC'
+windows_iis_marker: 'C:\ProgramData\IaC\iis-baseline.txt'
+
+windows_iis_features:
+  - Web-Server
+  - Web-WebServer
+  - Web-Common-Http
+  - Web-Default-Doc
+  - Web-Dir-Browsing
+  - Web-Http-Errors
+  - Web-Static-Content
+  - Web-Http-Redirect
+  - Web-DAV-Publishing
+  - Web-Health
+  - Web-Http-Logging
+  - Web-Custom-Logging
+  - Web-Log-Libraries
+  - Web-ODBC-Logging
+  - Web-Request-Monitor
+  - Web-Http-Tracing
+  - Web-Performance
+  - Web-Stat-Compression
+  - Web-Dyn-Compression
+  - Web-Security
+  - Web-Filtering
+  - Web-Basic-Auth
+  - Web-Windows-Auth
+  - Web-Digest-Auth
+  - Web-Client-Auth
+  - Web-Cert-Auth
+  - Web-IP-Security
+  - Web-Url-Auth
+  - Web-App-Dev
+  - Web-Net-Ext
+  - Web-Net-Ext45
+  - Web-Asp
+  - Web-Asp-Net
+  - Web-Asp-Net45
+  - Web-CGI
+  - Web-ISAPI-Ext
+  - Web-ISAPI-Filter
+  - Web-Includes
+  - Web-WebSockets
+  - Web-Ftp-Server
+  - Web-Ftp-Service
+  - Web-Ftp-Ext
+  - Web-Mgmt-Tools
+  - Web-Mgmt-Console
+  - Web-Mgmt-Compat
+  - Web-Metabase
+  - Web-Lgcy-Mgmt-Console
+  - Web-Lgcy-Scripting
+  - Web-WMI
+  - Web-Scripting-Tools
+  - Web-Mgmt-Service
+  - NET-Framework-Features
+  - NET-Framework-Core
+  - NET-HTTP-Activation
+  - NET-Non-HTTP-Activ
+  - NET-Framework-45-Features
+  - NET-Framework-45-Core
+  - NET-Framework-45-ASPNET
+  - NET-WCF-Services45
+  - NET-WCF-HTTP-Activation45
+  - NET-WCF-TCP-Activation45
+  - NET-WCF-Pipe-Activation45
+  - NET-WCF-MSMQ-Activation45
+  - NET-WCF-TCP-PortSharing45
+  - SMTP-Server
+
+windows_iis_enable_management_service: true
+windows_iis_register_aspnet: true
+windows_iis_enable_32bit_default_app_pool: true
+windows_iis_install_url_rewrite: true
+windows_iis_url_rewrite_url: "https://download.microsoft.com/download/D/D/9/DD939EF9-88B1-4D5A-9BE3-4125FE9C6D2C/rewrite_amd64_en-US.msi"
+windows_iis_temp_dir: 'C:\Temp'
+windows_iis_url_rewrite_msi: 'C:\Temp\rewrite_amd64_en-US.msi'
+windows_iis_restart_after_install: true
+
+windows_iis_firewall_enabled: true
+windows_iis_firewall_profiles:
+  - domain
+  - private
+windows_iis_firewall_remote_addresses: []

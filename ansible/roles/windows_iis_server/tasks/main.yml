@@ -1,0 +1,158 @@
+---
+- name: Determine whether this host should run IIS/API baseline
+  ansible.builtin.set_fact:
+    windows_iis_role_matches: "{{ (iac_role | default('')) == windows_iis_only_for_role }}"
+
+- name: Skip IIS/API baseline for non API Server roles
+  ansible.builtin.debug:
+    msg:
+      host: "{{ inventory_hostname }}"
+      iac_role: "{{ iac_role | default('') }}"
+      skipped: true
+      reason: "Host role is not {{ windows_iis_only_for_role }}."
+  when: not windows_iis_role_matches | bool
+
+- name: Run IIS/API Server baseline for API Server role
+  when:
+    - windows_iis_enabled | bool
+    - windows_iis_role_matches | bool
+  block:
+    - name: Ensure IIS marker directory exists
+      ansible.windows.win_file:
+        path: "{{ windows_iis_marker_dir }}"
+        state: directory
+
+    - name: Install IIS/API Windows feature set
+      ansible.windows.win_feature:
+        name: "{{ windows_iis_features }}"
+        include_management_tools: true
+        state: present
+      register: windows_iis_feature_result
+
+    - name: Enable IIS Management Service
+      ansible.windows.win_service:
+        name: WMSVC
+        start_mode: auto
+        state: started
+      when: windows_iis_enable_management_service | bool
+
+    - name: Register ASP.NET 4.x with IIS when aspnet_regiis is present
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Continue'
+        $aspnetRegIIS = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\aspnet_regiis.exe"
+        if (Test-Path $aspnetRegIIS) {
+          & $aspnetRegIIS -i
+          Write-Output 'ASP.NET 4.x registered with IIS.'
+        } else {
+          Write-Output 'aspnet_regiis.exe not found or not required on this OS.'
+        }
+      register: windows_iis_aspnet_register
+      changed_when: "'registered with IIS' in windows_iis_aspnet_register.stdout"
+      when: windows_iis_register_aspnet | bool
+
+    - name: Enable 32-bit applications on DefaultAppPool
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        Import-Module WebAdministration
+        if (Test-Path "IIS:\AppPools\DefaultAppPool") {
+          Set-ItemProperty "IIS:\AppPools\DefaultAppPool" -Name enable32BitAppOnWin64 -Value $true
+          Write-Output 'DefaultAppPool enable32BitAppOnWin64 = true'
+        }
+      register: windows_iis_default_app_pool
+      changed_when: "'enable32BitAppOnWin64 = true' in windows_iis_default_app_pool.stdout"
+      when: windows_iis_enable_32bit_default_app_pool | bool
+
+    - name: Check IIS URL Rewrite module
+      ansible.windows.win_reg_stat:
+        path: HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite
+      register: windows_iis_url_rewrite_reg
+      when: windows_iis_install_url_rewrite | bool
+
+    - name: Ensure URL Rewrite installer directory exists
+      ansible.windows.win_file:
+        path: "{{ windows_iis_temp_dir }}"
+        state: directory
+      when:
+        - windows_iis_install_url_rewrite | bool
+        - not windows_iis_url_rewrite_reg.exists | default(false)
+
+    - name: Download IIS URL Rewrite Module installer
+      ansible.windows.win_get_url:
+        url: "{{ windows_iis_url_rewrite_url }}"
+        dest: "{{ windows_iis_url_rewrite_msi }}"
+      when:
+        - windows_iis_install_url_rewrite | bool
+        - not windows_iis_url_rewrite_reg.exists | default(false)
+
+    - name: Install IIS URL Rewrite Module
+      ansible.windows.win_package:
+        path: "{{ windows_iis_url_rewrite_msi }}"
+        arguments: /quiet /norestart
+        state: present
+      when:
+        - windows_iis_install_url_rewrite | bool
+        - not windows_iis_url_rewrite_reg.exists | default(false)
+
+    - name: Configure IIS HTTP firewall rule
+      community.windows.win_firewall_rule:
+        name: IaC-IIS-HTTP-80
+        display_name: IaC IIS HTTP 80
+        description: IIS HTTP access managed by IaC API Server baseline.
+        enabled: true
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: 80
+        remoteip: "{{ windows_iis_firewall_remote_addresses | default([]) }}"
+        profiles: "{{ windows_iis_firewall_profiles }}"
+      when: windows_iis_firewall_enabled | bool
+
+    - name: Configure IIS HTTPS firewall rule
+      community.windows.win_firewall_rule:
+        name: IaC-IIS-HTTPS-443
+        display_name: IaC IIS HTTPS 443
+        description: IIS HTTPS access managed by IaC API Server baseline.
+        enabled: true
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: 443
+        remoteip: "{{ windows_iis_firewall_remote_addresses | default([]) }}"
+        profiles: "{{ windows_iis_firewall_profiles }}"
+      when: windows_iis_firewall_enabled | bool
+
+    - name: Restart IIS
+      ansible.windows.win_command: iisreset
+      changed_when: true
+      when: windows_iis_restart_after_install | bool
+
+    - name: Collect IIS/API baseline status
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Continue'
+        $w3svc = Get-Service W3SVC -ErrorAction SilentlyContinue
+        $wmsvc = Get-Service WMSVC -ErrorAction SilentlyContinue
+        $urlRewrite = Test-Path 'HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite'
+        $installed = Get-WindowsFeature | Where-Object {
+          $_.Name -like 'Web-*' -and $_.InstallState -eq 'Installed'
+        } | Select-Object Name, DisplayName, InstallState
+        [PSCustomObject]@{
+          host = $env:COMPUTERNAME
+          role = '{{ iac_role | default("") }}'
+          w3svc_status = if ($w3svc) { $w3svc.Status.ToString() } else { 'Missing' }
+          wmsvc_status = if ($wmsvc) { $wmsvc.Status.ToString() } else { 'Missing' }
+          url_rewrite_present = $urlRewrite
+          enable_32bit_default_app_pool = {{ '$true' if windows_iis_enable_32bit_default_app_pool | bool else '$false' }}
+          feature_count = @($installed).Count
+          features = $installed
+        } | ConvertTo-Json -Depth 6
+      register: windows_iis_status
+      changed_when: false
+
+    - name: Write IIS/API baseline marker
+      ansible.windows.win_copy:
+        dest: "{{ windows_iis_marker }}"
+        content: |
+          Managed by IaC IIS/API Server baseline.
+          Host: {{ inventory_hostname }}
+          Role: {{ iac_role | default('') }}
+          Status: {{ windows_iis_status.stdout | default('') }}

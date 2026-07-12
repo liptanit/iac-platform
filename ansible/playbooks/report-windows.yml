@@ -23,6 +23,14 @@
           Select-Object -First 1 -ExpandProperty Enabled
         $winrm = Get-Service WinRM -ErrorAction SilentlyContinue
         $zabbix = Get-Service 'Zabbix Agent 2' -ErrorAction SilentlyContinue
+        $w3svc = Get-Service 'W3SVC' -ErrorAction SilentlyContinue
+        $wmsvc = Get-Service 'WMSVC' -ErrorAction SilentlyContinue
+        $iisMarker = Test-Path 'C:\ProgramData\IaC\iis-baseline.txt'
+        $iisFirewallHttp = Get-NetFirewallRule -DisplayName 'IaC IIS HTTP 80' -ErrorAction SilentlyContinue |
+          Select-Object -First 1 -ExpandProperty Enabled
+        $iisFirewallHttps = Get-NetFirewallRule -DisplayName 'IaC IIS HTTPS 443' -ErrorAction SilentlyContinue |
+          Select-Object -First 1 -ExpandProperty Enabled
+        $urlRewrite = Test-Path 'HKLM:\SOFTWARE\Microsoft\IIS Extensions\URL Rewrite'
         $sqlService = Get-Service 'MSSQLSERVER' -ErrorAction SilentlyContinue
         $sqlMarker = Test-Path 'C:\ProgramData\IaC\sql-baseline.txt'
         $sqlFirewall = Get-NetFirewallRule -DisplayName 'IaC SQL Server 1433' -ErrorAction SilentlyContinue |
@@ -54,6 +62,12 @@
           rdp_firewall_enabled = $rdpFirewall
           icmp_firewall_enabled = $icmpFirewall
           zabbix_agent_status = if ($zabbix) { $zabbix.Status.ToString() } else { 'Missing' }
+          iis_w3svc_status = if ($w3svc) { $w3svc.Status.ToString() } else { 'Missing' }
+          iis_management_status = if ($wmsvc) { $wmsvc.Status.ToString() } else { 'Missing' }
+          iis_baseline_marker = $iisMarker
+          iis_http_firewall_enabled = $iisFirewallHttp
+          iis_https_firewall_enabled = $iisFirewallHttps
+          iis_url_rewrite_present = $urlRewrite
           sql_server_status = if ($sqlService) { $sqlService.Status.ToString() } else { 'Missing' }
           sql_baseline_marker = $sqlMarker
           sql_firewall_enabled = $sqlFirewall
