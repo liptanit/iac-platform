@@ -22,18 +22,87 @@
         path: "{{ windows_sql_marker_dir }}"
         state: directory
 
+    - name: Set initial SQL install source
+      ansible.builtin.set_fact:
+        windows_sql_effective_install_source: "{{ windows_sql_install_source }}"
+        windows_sql_effective_setup_path: "{{ windows_sql_setup_path }}"
+
+    - name: Check controller SQL ISO cache
+      ansible.builtin.stat:
+        path: "{{ windows_sql_iso_controller_path }}"
+      register: windows_sql_iso_controller_stat
+      delegate_to: localhost
+      when:
+        - windows_sql_mount_iso_when_source_missing | bool
+        - windows_sql_install_source | length == 0
+
+    - name: Ensure guest SQL ISO directory exists
+      ansible.windows.win_file:
+        path: "{{ windows_sql_iso_guest_dir }}"
+        state: directory
+      when:
+        - windows_sql_mount_iso_when_source_missing | bool
+        - windows_sql_copy_iso_from_controller | bool
+        - windows_sql_install_source | length == 0
+        - windows_sql_iso_controller_stat.stat.exists | default(false)
+
+    - name: Copy SQL ISO from controller cache to guest
+      ansible.windows.win_copy:
+        src: "{{ windows_sql_iso_controller_path }}"
+        dest: "{{ windows_sql_iso_guest_path }}"
+      when:
+        - windows_sql_mount_iso_when_source_missing | bool
+        - windows_sql_copy_iso_from_controller | bool
+        - windows_sql_install_source | length == 0
+        - windows_sql_iso_controller_stat.stat.exists | default(false)
+
+    - name: Mount SQL ISO and resolve setup.exe
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $imagePath = '{{ windows_sql_iso_guest_path }}'
+        $image = Get-DiskImage -ImagePath $imagePath -ErrorAction SilentlyContinue
+        if (-not $image) {
+          Mount-DiskImage -ImagePath $imagePath | Out-Null
+          $image = Get-DiskImage -ImagePath $imagePath
+        } elseif (-not $image.Attached) {
+          Mount-DiskImage -ImagePath $imagePath | Out-Null
+          $image = Get-DiskImage -ImagePath $imagePath
+        }
+        $volume = $image | Get-Volume
+        $driveRoot = $volume.DriveLetter + ':' + [char]92
+        $setupPath = Join-Path $driveRoot 'setup.exe'
+        [PSCustomObject]@{
+          install_source = $driveRoot
+          setup_path = $setupPath
+          setup_present = Test-Path $setupPath
+        } | ConvertTo-Json -Compress
+      register: windows_sql_iso_mount
+      changed_when: false
+      when:
+        - windows_sql_mount_iso_when_source_missing | bool
+        - windows_sql_install_source | length == 0
+        - windows_sql_iso_controller_stat.stat.exists | default(false)
+
+    - name: Use mounted SQL ISO as install source
+      ansible.builtin.set_fact:
+        windows_sql_effective_install_source: "{{ (windows_sql_iso_mount.stdout | from_json).install_source }}"
+        windows_sql_effective_setup_path: "{{ (windows_sql_iso_mount.stdout | from_json).setup_path }}"
+      when:
+        - windows_sql_iso_mount.stdout | default('') | length > 0
+        - (windows_sql_iso_mount.stdout | from_json).setup_present | default(false)
+
     - name: Capture SQL install source status
       ansible.windows.win_stat:
-        path: "{{ windows_sql_setup_path }}"
+        path: "{{ windows_sql_effective_setup_path }}"
       register: windows_sql_setup_stat
-      when: windows_sql_install_source | length > 0
+      when: windows_sql_effective_install_source | length > 0
 
     - name: Fail when SQL install source is required but missing
       ansible.builtin.fail:
-        msg: "SQL install source is not available: {{ windows_sql_setup_path }}"
+        msg: "SQL install source is not available: {{ windows_sql_effective_setup_path }}"
       when:
         - windows_sql_fail_when_source_missing | bool
-        - windows_sql_install_source | length == 0 or not (windows_sql_setup_stat.stat.exists | default(false))
+        - windows_sql_effective_install_source | length == 0 or not (windows_sql_setup_stat.stat.exists | default(false))
 
     - name: Check SQL Server service
       ansible.windows.win_service_info:
@@ -53,7 +122,7 @@
 
     - name: Install SQL Server when setup source is present and service is missing
       ansible.windows.win_command: >-
-        {{ windows_sql_setup_path }}
+        {{ windows_sql_effective_setup_path }}
         /Q
         /ACTION=Install
         /FEATURES={{ windows_sql_features }}
@@ -81,7 +150,7 @@
       changed_when: true
       when:
         - windows_sql_install_when_source_present | bool
-        - windows_sql_install_source | length > 0
+        - windows_sql_effective_install_source | length > 0
         - windows_sql_setup_stat.stat.exists | default(false)
         - windows_sql_service_info.services | default([]) | length == 0
 
@@ -98,17 +167,22 @@
       when: windows_sql_service_after.services | default([]) | length > 0
 
     - name: Configure SQL firewall rule
-      community.windows.win_firewall_rule:
-        name: IaC-SQL-Server-1433
-        display_name: IaC SQL Server 1433
-        description: SQL Server access managed by IaC SQL baseline.
-        enabled: true
-        direction: in
-        action: allow
-        protocol: tcp
-        localport: "{{ windows_sql_port | int }}"
-        remoteip: "{{ windows_sql_firewall_remote_addresses | default([]) }}"
-        profiles: "{{ windows_sql_firewall_profiles }}"
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $name = 'IaC-SQL-Server-1433'
+        $remote = ConvertFrom-Json '{{ windows_sql_firewall_remote_addresses | default([]) | to_json }}'
+        if (-not $remote -or $remote.Count -eq 0) { $remote = @('Any') }
+        $profileItems = ConvertFrom-Json '{{ windows_sql_firewall_profiles | default([]) | to_json }}'
+        $profiles = $profileItems -join ','
+        $existing = Get-NetFirewallRule -Name $name -ErrorAction SilentlyContinue
+        if ($existing) {
+          Set-NetFirewallRule -Name $name -Enabled True -Direction Inbound -Action Allow -Profile $profiles
+          Set-NetFirewallPortFilter -AssociatedNetFirewallRule $existing -Protocol TCP -LocalPort {{ windows_sql_port | int }}
+          Set-NetFirewallAddressFilter -AssociatedNetFirewallRule $existing -RemoteAddress $remote
+        } else {
+          New-NetFirewallRule -Name $name -DisplayName 'IaC SQL Server 1433' -Description 'SQL Server access managed by IaC SQL baseline.' -Enabled True -Direction Inbound -Action Allow -Protocol TCP -LocalPort {{ windows_sql_port | int }} -RemoteAddress $remote -Profile $profiles | Out-Null
+        }
+      changed_when: false
       when: windows_sql_firewall_enabled | bool
 
     - name: Apply SQL instance baseline when sqlcmd is available
@@ -139,12 +213,12 @@
         $serviceName = '{{ 'MSSQLSERVER' if windows_sql_instance_name == 'MSSQLSERVER' else 'MSSQL$' + windows_sql_instance_name }}'
         $service = Get-Service $serviceName -ErrorAction SilentlyContinue
         $sqlcmd = Get-Command sqlcmd.exe -ErrorAction SilentlyContinue
-        $setupPresent = Test-Path '{{ windows_sql_setup_path }}'
+        $setupPresent = Test-Path '{{ windows_sql_effective_setup_path }}'
         [PSCustomObject]@{
           host = $env:COMPUTERNAME
           role = '{{ iac_role | default("") }}'
           setup_present = $setupPresent
-          install_source = '{{ windows_sql_install_source }}'
+          install_source = '{{ windows_sql_effective_install_source }}'
           service_name = $serviceName
           service_status = if ($service) { $service.Status.ToString() } else { 'Missing' }
           sqlcmd_present = [bool]$sqlcmd
