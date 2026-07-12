@@ -4,7 +4,7 @@ username = "iacadmin"
 groups = ["adm", "sudo"]
 shell = "/bin/bash"
 sudo = "ALL=(ALL) NOPASSWD:ALL"
-gateway = "10.85.91.1"
+gateway = "10.85.91.254"
 prefix = 24
 dns_servers = ["10.1.0.9", "10.1.0.254"]
 interface_match = "en*"
