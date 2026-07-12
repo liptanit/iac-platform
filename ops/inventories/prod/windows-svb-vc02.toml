@@ -46,6 +46,7 @@ ipv4_address = "10.0.3.104"
 role = "api-server"
 role_profile = "API Server"
 network = "POS Server"
+ipv4_gateway = "10.0.3.254"
 cpu = 4
 memory_mb = 16384
 
