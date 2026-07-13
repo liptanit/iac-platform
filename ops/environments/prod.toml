@@ -1,7 +1,7 @@
 name = "prod"
 enabled = true
 description = "Production-managed IaC inventories on sysap."
-allowed_actions = ["plan", "apply", "validate"]
+allowed_actions = ["plan", "apply", "validate", "destroy"]
 
 windows_inventory = "ops/inventories/prod/windows.toml"
 linux_inventory = "ops/inventories/prod/linux.toml"

@@ -200,6 +200,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--destroy", action="store_true", help="Create a destroy plan and apply it when --apply is also set.")
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--report", action="store_true")
     parser.add_argument("--allow-destroy", action="store_true")
@@ -248,7 +249,7 @@ def main() -> int:
     ], env=env, log=log)
 
     if not args.validate_only:
-        if not args.skip_precheck:
+        if not args.skip_precheck and not args.destroy:
             precheck(vms, env, log, args.allow_used_ip)
 
         run([
@@ -278,7 +279,7 @@ def main() -> int:
             init_command.extend(["-reconfigure", f"-backend-config=path={state_path}"])
         run(init_command, cwd=LINUX_ENV, env=env, log=log)
         run(["tofu", "validate"], cwd=LINUX_ENV, env=env, log=log)
-        plan = run([
+        plan_command = [
             "tofu",
             "plan",
             "-input=false",
@@ -286,13 +287,16 @@ def main() -> int:
             "-no-color",
             "-out",
             str(report_dir / "linux.tfplan"),
-        ], cwd=LINUX_ENV, env=env, log=log, check=False)
+        ]
+        if args.destroy:
+            plan_command.insert(2, "-destroy")
+        plan = run(plan_command, cwd=LINUX_ENV, env=env, log=log, check=False)
         if plan.returncode not in (0, 2):
             raise SystemExit(f"tofu plan failed with exit {plan.returncode}")
         if plan_has_destroy(plan.stdout) and not args.allow_destroy:
             raise SystemExit("plan includes destroy action; rerun with --allow-destroy only after explicit approval")
         if args.apply:
-            if plan.returncode == 2 and not args.skip_seed_upload:
+            if plan.returncode == 2 and not args.skip_seed_upload and not args.destroy:
                 run([
                     str(REPO / "scripts" / "generate-nocloud-seeds.py"),
                     "--config",
@@ -307,7 +311,7 @@ def main() -> int:
                 ], env=govc_env(env), log=log)
             run(["tofu", "apply", "-input=false", "-auto-approve", str(report_dir / "linux.tfplan")], cwd=LINUX_ENV, env=env, log=log)
 
-    if args.apply or args.validate_only:
+    if (args.apply and not args.destroy) or args.validate_only:
         ansible_playbook("ping-linux.yml", env=env, log=log, report_dir=report_dir)
         ansible_playbook("baseline-linux.yml", env=env, log=log, report_dir=report_dir)
         if args.report:
@@ -320,6 +324,7 @@ def main() -> int:
         f"- VM names: {', '.join(vm['name'] for vm in vms)}",
         f"- IPs: {', '.join(vm['ipv4'] for vm in vms)}",
         f"- Apply requested: `{args.apply}`",
+        f"- Destroy requested: `{args.destroy}`",
         f"- Validate only: `{args.validate_only}`",
         f"- Per-host report requested: `{args.report}`",
         f"- Command log: `{log}`",

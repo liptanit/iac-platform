@@ -345,7 +345,7 @@ def build_runner_command(args: argparse.Namespace, profile: dict[str, Any], conf
         elif args.action == "validate":
             command.append("--validate-only")
         elif args.action == "destroy":
-            raise SystemExit("destroy is not implemented for Windows through the rollout runner yet")
+            command.extend(["--destroy", "--allow-destroy", "--apply"])
         if args.report and args.action != "plan":
             command.append("--report")
         if args.postclone:
@@ -365,7 +365,7 @@ def build_runner_command(args: argparse.Namespace, profile: dict[str, Any], conf
         elif args.action == "validate":
             command.append("--validate-only")
         elif args.action == "destroy":
-            raise SystemExit("destroy is not implemented for Linux through the rollout runner yet")
+            command.extend(["--destroy", "--allow-destroy", "--apply", "--skip-seed-upload"])
         if args.report and args.action != "plan":
             command.append("--report")
         state_key = getattr(args, "state_key", "")

@@ -174,6 +174,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path, help="Windows VM TOML inventory.")
     parser.add_argument("--apply", action="store_true", help="Run tofu apply after an approved plan.")
+    parser.add_argument("--destroy", action="store_true", help="Create a destroy plan and apply it when --apply is also set.")
     parser.add_argument("--validate-only", action="store_true", help="Skip OpenTofu and run WinRM/Ansible validation only.")
     parser.add_argument("--postclone", action="store_true", help="Run post-clone production baseline playbook after apply or with --validate-only.")
     parser.add_argument("--postclone-vars", type=Path, default=None, help="Optional Ansible vars YAML for post-clone policy.")
@@ -248,8 +249,11 @@ def main() -> int:
             init_command.extend(["-reconfigure", f"-backend-config=path={state_path}"])
         run(init_command, cwd=WINDOWS_ENV, env=env, log=log)
         run(["tofu", "validate"], cwd=WINDOWS_ENV, env=env, log=log)
+        plan_command = ["tofu", "plan", "-input=false", "-detailed-exitcode", "-no-color", "-out", str(report_dir / "windows.tfplan")]
+        if args.destroy:
+            plan_command.insert(2, "-destroy")
         plan = run(
-            ["tofu", "plan", "-input=false", "-detailed-exitcode", "-no-color", "-out", str(report_dir / "windows.tfplan")],
+            plan_command,
             cwd=WINDOWS_ENV,
             env=env,
             log=log,
@@ -263,7 +267,7 @@ def main() -> int:
         if args.apply:
             run(["tofu", "apply", "-input=false", "-auto-approve", str(report_dir / "windows.tfplan")], cwd=WINDOWS_ENV, env=env, log=log)
 
-    should_validate = args.apply or args.validate_only
+    should_validate = (args.apply and not args.destroy) or args.validate_only
     if should_validate:
         ansible_playbook("ping-windows.yml", env=env, log=log, report_dir=report_dir)
         ansible_playbook("baseline-windows.yml", env=env, log=log, report_dir=report_dir)
@@ -281,6 +285,7 @@ def main() -> int:
         f"- Inventory: `{args.config}`",
         f"- VM names: {', '.join(vm_names)}",
         f"- Apply requested: `{args.apply}`",
+        f"- Destroy requested: `{args.destroy}`",
         f"- Validate only: `{args.validate_only}`",
         f"- Post-clone baseline requested: `{args.postclone}`",
         f"- Per-host report requested: `{args.report}`",
