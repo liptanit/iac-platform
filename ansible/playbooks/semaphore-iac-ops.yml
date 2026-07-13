@@ -46,6 +46,11 @@
         iac_command: "{{ iac_command + ['--approved-by', iac_approved_by, '--approval-token', iac_approval_token] }}"
       when: iac_action in ["apply", "destroy"]
 
+    - name: Add explicit destroy guardrail flag
+      ansible.builtin.set_fact:
+        iac_command: "{{ iac_command + ['--allow-destroy'] }}"
+      when: iac_action == "destroy"
+
     - name: Run IaC operation wrapper
       ansible.builtin.command:
         argv: "{{ iac_command }}"
