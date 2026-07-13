@@ -22,7 +22,7 @@ runs after the common baseline.
 | Zabbix Agent 2 | Production-enabled | Installed by SYSAP bootstrap script and configured for server `10.1.0.15`. |
 | Windows shell black-screen repair | Production-enabled | Runs Winlogon Shell/Userinit normalization, DISM, SFC, AppX shell re-registration, and reboot before role-specific automation. |
 | Audit policy | Automated | Logon/logoff/account/audit-policy subcategories are configured. |
-| Automation local admin / PAM user | Hook available | `windows_automation_admin_name` and `ANSIBLE_AUTOMATION_ADMIN_PASSWORD` can create a controlled local admin when approved. |
+| Automation local admin / PAM user | Automated when secret is present | `baseline-windows.yml` creates the approved PAM local users and PAM manage group when `WINDOWS_PAM_LOCAL_PASSWORD` is present in the runner environment. The old-user delete block from the source PowerShell is intentionally not used. |
 | XDR / EDR | Hook available | `windows_edr_install_command` and `windows_edr_service_name` are placeholders until the approved installer/token/service name are supplied. |
 | Deep Security / Vision One | Pending | Needs approved installer source, activation/token policy, service name, and reboot behavior before enabling. |
 
@@ -35,10 +35,9 @@ runs after the common baseline.
 
 ## Open Items
 
-1. Confirm the final local admin/PAM account name and password source.
-2. Supply approved XDR/EDR installer command, token handling method, and service
+1. Supply approved XDR/EDR installer command, token handling method, and service
    name.
-3. Supply approved Deep Security or Vision One installer source, activation
+2. Supply approved Deep Security or Vision One installer source, activation
    policy, service name, and validation checks.
-4. Decide whether any common baseline item should fail the rollout hard or only
+3. Decide whether any common baseline item should fail the rollout hard or only
    produce evidence when missing.

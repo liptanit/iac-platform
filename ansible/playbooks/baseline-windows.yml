@@ -7,6 +7,16 @@
     windows_enable_icmp: true
     windows_run_shell_repair: false
     windows_baseline_marker: C:\ProgramData\IaC\baseline.txt
+    windows_pam_baseline_password: "{{ lookup('env', 'WINDOWS_PAM_LOCAL_PASSWORD') }}"
+    windows_pam_baseline_enabled: "{{ windows_pam_baseline_password | length > 0 }}"
+    windows_pam_users:
+      - name: kp-pamap-pwdreset
+        description: Functional Account for PAM Password Reset
+      - name: kops-sys-ap
+        description: PAM Manage Account (Airport User)
+    windows_pam_manage_groups:
+      - name: lops-sys-ap
+        description: PAM Manage Account Group (Airport)
   tasks:
     - name: Ensure IaC marker directory exists
       ansible.windows.win_file:
@@ -46,6 +56,35 @@
         start_mode: auto
         state: started
 
+    - name: Ensure PAM local users are present when configured
+      ansible.windows.win_user:
+        name: "{{ item.name }}"
+        password: "{{ windows_pam_baseline_password }}"
+        description: "{{ item.description }}"
+        password_never_expires: true
+        user_cannot_change_password: false
+        state: present
+        groups:
+          - Administrators
+      loop: "{{ windows_pam_users }}"
+      no_log: true
+      when: windows_pam_baseline_enabled | bool
+
+    - name: Ensure PAM manage local groups are present when configured
+      ansible.windows.win_group:
+        name: "{{ item.name }}"
+        description: "{{ item.description }}"
+        state: present
+      loop: "{{ windows_pam_manage_groups }}"
+      when: windows_pam_baseline_enabled | bool
+
+    - name: Ensure PAM manage groups are local administrators when configured
+      ansible.windows.win_group_membership:
+        name: Administrators
+        members: "{{ windows_pam_manage_groups | map(attribute='name') | list }}"
+        state: present
+      when: windows_pam_baseline_enabled | bool
+
     - name: Run post-clone shell repair when requested
       ansible.builtin.include_tasks: ../tasks/windows-shell-repair.yml
       when: windows_run_shell_repair | bool
@@ -59,3 +98,6 @@
           os: "{{ ansible_facts.distribution | default('') }}"
           timezone: "{{ windows_timezone }}"
           shell_repair_requested: "{{ windows_run_shell_repair | bool }}"
+          pam_baseline_enabled: "{{ windows_pam_baseline_enabled | bool }}"
+          pam_users: "{{ windows_pam_users | map(attribute='name') | list }}"
+          pam_manage_groups: "{{ windows_pam_manage_groups | map(attribute='name') | list }}"
